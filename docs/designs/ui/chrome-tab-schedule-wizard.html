@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SQL Extractor · Wizard: Schedule</title>
+  <style>
+    :root {
+      --bg-0: #eef3f8;
+      --bg-1: #f7f9fc;
+      --panel: #ffffff;
+      --panel-soft: #f2f5fa;
+      --line: #d9e2ef;
+      --line-light: #e5ecf6;
+      --text: #0e1a2b;
+      --muted: #4f607a;
+      --subtle: #5a6b84;
+      --primary: #1f6fe5;
+      --primary-2: #2e82ff;
+      --primary-border: #1d62c4;
+      --good: #16a34a;
+      --warn: #d97706;
+      --bad: #dc2626;
+      --font: "Segoe UI Variable", "IBM Plex Sans", "Segoe UI", sans-serif;
+      --font-mono: "Cascadia Mono", "Consolas", monospace;
+      --r-sm: 6px;
+      --r-md: 10px;
+      --r-lg: 14px;
+      --r-pill: 999px;
+      --shadow-sm: 0 4px 12px rgba(13, 27, 42, 0.04);
+      --shadow-md: 0 10px 20px rgba(13, 27, 42, 0.04);
+      --shadow-lg: 0 16px 36px rgba(13, 27, 42, 0.08);
+      --nav-bg: #0d1b2a;
+      --nav-bg-end: #08131f;
+      --nav-item-bg: #0f2035;
+      --nav-item-border: #1f3656;
+      --nav-item-active-border: #2f5b95;
+      --nav-text: #bdd0ea;
+      --nav-text-active: #ffffff;
+      --nav-text-muted: #94add0;
+      --nav-product-border: #2a4465;
+      --nav-foot-text: #a7bddd;
+      --log-bg: #0b1522;
+      --log-text: #d9e7ff;
+      --log-border: #1d3555;
+      --log-ok: #86efac;
+      --log-err: #fca5a5;
+      --log-warn: #fde68a;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: var(--font);
+      color: var(--text);
+      background:
+        radial-gradient(1600px 800px at 20% -20%, #d7e7ff 0%, transparent 60%),
+        radial-gradient(1000px 700px at 100% 0%, #dcecff 0%, transparent 60%),
+        linear-gradient(180deg, var(--bg-0), var(--bg-1));
+      min-height: 100vh;
+      padding: 20px;
+      line-height: 1.5;
+    }
+
+    .app {
+      max-width: 1500px;
+      margin: 0 auto;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      overflow: hidden;
+      background: var(--panel);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(180deg, #ffffff, #f8fbff);
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 15px;
+      letter-spacing: 0.2px;
+    }
+
+    .topbar-note {
+      font-size: 12px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: var(--good);
+      box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.2);
+      display: inline-block;
+    }
+
+    .content {
+      display: grid;
+      grid-template-columns: 270px minmax(0, 1fr);
+      min-height: 760px;
+    }
+
+    .sidebar {
+      background: linear-gradient(180deg, var(--nav-bg), var(--nav-bg-end));
+      border-right: 1px solid #1c3350;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .pill {
+      border: 1px solid var(--nav-item-border);
+      border-radius: 999px;
+      padding: 6px 12px;
+      margin: 0 0 12px;
+      font-size: 12px;
+      color: var(--nav-foot-text);
+      text-align: center;
+      background: linear-gradient(180deg, #112642, #102238);
+      border-color: var(--nav-product-border);
+    }
+
+    .nav {
+      margin-top: 12px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .nav-btn {
+      border: 1px solid var(--nav-item-border);
+      border-radius: var(--r-md);
+      padding: 10px;
+      color: var(--nav-text);
+      background: var(--nav-item-bg);
+      cursor: default;
+      font-size: 13px;
+    }
+
+    .nav-btn.active {
+      color: var(--nav-text-active);
+      border-color: var(--nav-item-active-border);
+      background: linear-gradient(180deg, #1d3f67, #183554);
+      box-shadow: inset 0 0 0 1px rgba(95, 150, 230, 0.25);
+    }
+
+    .nav-note {
+      margin-top: 14px;
+      color: var(--nav-foot-text);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .schedule-chip {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .main {
+      padding: 24px;
+      background: linear-gradient(180deg, #f9fbff, #f3f7fc);
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--r-lg);
+      padding: 20px;
+      box-shadow: var(--shadow-md);
+    }
+
+    .card h1 {
+      margin: 0 0 4px;
+      font-size: 24px;
+    }
+
+    .card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .fieldset {
+      margin-top: 18px;
+      padding-top: 16px;
+      border-top: 1px dashed var(--line);
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 180px 1fr;
+      align-items: center;
+      gap: 16px;
+      margin: 10px 0;
+    }
+
+    .row.row-sub {
+      margin-top: 2px;
+      margin-bottom: 0;
+    }
+
+    .row label {
+      color: var(--subtle);
+      font-size: 13px;
+    }
+
+    .field {
+      min-width: 0;
+    }
+
+    .control {
+      width: 100%;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--text);
+      border-radius: var(--r-md);
+      padding: 8px 10px;
+      font: inherit;
+      outline: none;
+    }
+
+    .control:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(31, 111, 229, 0.12);
+    }
+
+    .inline {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .radio-group,
+    .check-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .check {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 7px 10px;
+      font-size: 13px;
+      user-select: none;
+      background: #fff;
+      cursor: pointer;
+      color: var(--text);
+    }
+
+    .check input[type="checkbox"] {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 18px;
+      height: 18px;
+      border: 2px solid var(--line);
+      border-radius: 4px;
+      background: #fff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      flex-shrink: 0;
+      outline: none;
+      margin: 0;
+      cursor: pointer;
+    }
+
+    .check input[type="checkbox"]:checked {
+      background: var(--primary);
+      border-color: var(--primary);
+    }
+
+    .check input[type="checkbox"]:checked::after {
+      content: "✓";
+      color: #fff;
+      font-size: 12px;
+      line-height: 1;
+      font-weight: 700;
+      position: absolute;
+      left: 50%;
+      top: 49%;
+      transform: translate(-50%, -50%);
+    }
+
+    .check input[type="checkbox"]:focus-visible {
+      box-shadow: 0 0 0 3px rgba(31, 111, 229, 0.12);
+    }
+
+    .mini {
+      width: 90px;
+    }
+
+    .muted-note {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .sub-note {
+      display: block;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .list-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .list-row input {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .range-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .btn {
+      border-radius: var(--r-md);
+      border: 1px solid var(--line);
+      background: white;
+      color: var(--text);
+      padding: 8px 11px;
+      cursor: pointer;
+      font: inherit;
+      transition: border-color 120ms ease, transform 120ms ease;
+      font-size: 13px;
+    }
+
+    .btn:hover {
+      border-color: var(--primary);
+      transform: translateY(-1px);
+    }
+
+    .btn.primary {
+      background: linear-gradient(180deg, var(--primary-2), var(--primary));
+      color: #fff;
+      border-color: var(--primary-border);
+    }
+
+    .btn.ghost {
+      background: transparent;
+    }
+
+    .btn.disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .status {
+      border: 1px dashed var(--line);
+      border-radius: 10px;
+      padding: 12px;
+      color: var(--text);
+      background: var(--panel-soft);
+      display: grid;
+      gap: 8px;
+      min-height: 92px;
+      margin-top: 12px;
+      font-size: 13px;
+    }
+
+    .title {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 2px;
+    }
+
+    .status .title {
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .mono {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: #0e1a2b;
+      background: #eef3f8;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px 10px;
+      display: inline-block;
+      letter-spacing: 0.2px;
+    }
+
+    .ok {
+      color: var(--good);
+    }
+
+    .warn {
+      color: var(--warn);
+    }
+
+    .bad {
+      color: var(--bad);
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .list-box {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px;
+      background: var(--log-bg);
+      color: var(--log-text);
+      font-family: var(--font-mono);
+      min-height: 130px;
+      font-size: 12px;
+      line-height: 1.45;
+      white-space: pre-wrap;
+      overflow: auto;
+    }
+
+    .list-box .ok {
+      color: var(--log-ok);
+    }
+
+    .list-box .wrn {
+      color: var(--log-warn);
+    }
+
+    .list-box .err {
+      color: var(--log-err);
+    }
+
+    .tag {
+      display: inline-block;
+      margin-right: 6px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      padding: 4px 8px;
+      font-size: 11px;
+      color: var(--muted);
+      background: #fff;
+    }
+
+    .footer {
+      margin-top: auto;
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+
+    @media (max-width: 920px) {
+      .content {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        display: none;
+      }
+
+      .row {
+        grid-template-columns: 1fr;
+      }
+
+      .grid-2 {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="topbar">
+      <div class="brand"><span class="dot"></span><span>SQL Server Data Extractor</span></div>
+      <div class="topbar-note">Шаг 6 · Расписание</div>
+    </div>
+    <div class="content">
+      <aside class="sidebar">
+        <div class="pill">Windows Configurator</div>
+        <div class="nav">
+          <div class="nav-btn">1 · Environment</div>
+          <div class="nav-btn">2 · SQL Connection</div>
+          <div class="nav-btn">3 · Auth</div>
+          <div class="nav-btn">4 · Databases</div>
+          <div class="nav-btn">5 · CDC</div>
+          <div class="nav-btn active">6 · Schedule</div>
+          <div class="nav-btn">7 · Validate</div>
+          <div class="nav-btn">8 · Run</div>
+        </div>
+        <div class="nav-note">
+          Экран демонстрирует логику выбора расписания запуска сервиса извлечения.
+        </div>
+      </aside>
+
+      <main class="main">
+        <section class="card">
+          <h1>Настройка расписания</h1>
+          <p>Выберите частоту запуска задания: поминутно, почасово, ежедневно или еженедельно. Для почасового режима можно комбинировать отдельные часы и диапазоны.</p>
+
+          <div class="fieldset">
+            <div class="row">
+              <label>Тип расписания</label>
+              <div class="field check-group" id="modeGroup">
+                <label class="check"><input type="checkbox" id="modeMinutely" /> Поминутно</label>
+                <label class="check"><input type="checkbox" id="modeHourly" checked /> Почасово</label>
+                <label class="check"><input type="checkbox" id="modeDaily" /> Ежедневно</label>
+                <label class="check"><input type="checkbox" id="modeWeekly" /> Еженедельно</label>
+              </div>
+            </div>
+
+            <div class="row" id="minutelyRow">
+              <label>Интервал, минут</label>
+              <div class="field inline">
+                <input class="control mini" type="number" id="minutelyInterval" min="1" max="1440" value="10" />
+                <span class="muted-note">(1–1440)</span>
+              </div>
+            </div>
+
+            <div id="hourlySection" class="row">
+              <label>Часы запуска</label>
+              <div class="field">
+                <div class="row row-sub">
+                  <label>Часы</label>
+                  <div class="field">
+                    <input class="control" id="hourListInput" type="text" placeholder="например: 3,8-19,20-22" />
+                    <small class="muted-note">Допускаются значения 0–23 и диапазоны через запятую.</small>
+                  </div>
+                </div>
+
+                <div id="hourlyRangesBlock" style="margin-top:8px;">
+                  <div class="range-list" id="rangesRoot">
+                  </div>
+                  <button class="btn" type="button" id="addRange">+ Добавить диапазон</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="row" id="minuteOfHourRow">
+              <label>Минута запуска</label>
+              <div class="field inline">
+                <input class="control mini" id="minuteOfHour" type="number" min="0" max="59" value="0" />
+                <span class="muted-note">(0–59)</span>
+              </div>
+            </div>
+
+            <div class="row" id="dailyDailyRow">
+              <label>Время запуска</label>
+              <div class="field inline">
+                <input class="control mini" id="dailyTime" type="time" value="03:30" />
+              </div>
+            </div>
+
+            <div class="row" id="weeklyRow" style="display:none;">
+              <label>Дни недели</label>
+              <div class="field">
+                <div class="check-group" id="weekdayListBlock">
+                  <label class="check"><input type="checkbox" class="weekday" value="1" checked /> Пн</label>
+                  <label class="check"><input type="checkbox" class="weekday" value="2" /> Вт</label>
+                  <label class="check"><input type="checkbox" class="weekday" value="3" /> Ср</label>
+                  <label class="check"><input type="checkbox" class="weekday" value="4" /> Чт</label>
+                  <label class="check"><input type="checkbox" class="weekday" value="5" /> Пт</label>
+                  <label class="check"><input type="checkbox" class="weekday" value="6" /> Сб</label>
+                  <label class="check"><input type="checkbox" class="weekday" value="0" /> Вс</label>
+                </div>
+                <div id="weekdayRangesBlock" style="margin-top:8px;">
+                  <div class="range-list" id="dayRangesRoot">
+                  </div>
+                  <button class="btn" type="button" id="addDayRange">+ Добавить диапазон дней</button>
+                </div>
+                <small class="sub-note">(1=понедельник, 0=воскресенье)</small>
+              </div>
+            </div>
+
+            <div class="row">
+              <label>Метка задачи</label>
+              <input class="control field" id="jobName" type="text" value="SQL Extractor Poll" />
+            </div>
+
+              <div class="status" id="statusBox">
+                <div class="title">Предпросмотр конфигурации</div>
+                <div id="statusSummary">Выберите параметры.</div>
+              <div class="inline">
+                <span class="muted-note">Cron:</span>
+                <span id="cronExpression" class="mono">* * * * * *</span>
+              </div>
+            </div>
+
+            <div class="grid-2">
+              <div>
+                <div class="title">Следующие 5 запусков</div>
+                <div class="list-box" id="nextRuns"></div>
+              </div>
+              <div>
+                <div class="title">Сформированная конфигурация</div>
+                <div class="list-box" id="configJson"></div>
+              </div>
+            </div>
+
+            <div class="footer">
+              <button class="btn ghost" id="resetBtn" type="button">Сброс</button>
+              <button class="btn primary" id="saveBtn" type="button">Сохранить расписание</button>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    const modeMinutely = document.getElementById('modeMinutely');
+    const modeHourly = document.getElementById('modeHourly');
+    const modeDaily = document.getElementById('modeDaily');
+    const modeWeekly = document.getElementById('modeWeekly');
+    const minutelyRow = document.getElementById('minutelyRow');
+    const hourlySection = document.getElementById('hourlySection');
+    const weeklyRow = document.getElementById('weeklyRow');
+    const minuteOfHourRow = document.getElementById('minuteOfHourRow');
+    const dailyDailyRow = document.getElementById('dailyDailyRow');
+    const statusSummary = document.getElementById('statusSummary');
+    const cronExpressionEl = document.getElementById('cronExpression');
+    const nextRunsEl = document.getElementById('nextRuns');
+    const configJson = document.getElementById('configJson');
+    const rangesRoot = document.getElementById('rangesRoot');
+    const dayRangesRoot = document.getElementById('dayRangesRoot');
+
+    const getActiveModes = () => ({
+      minutely: modeMinutely.checked,
+      hourly: modeHourly.checked,
+      daily: modeDaily.checked,
+      weekly: modeWeekly.checked,
+    });
+
+    function normalizeModes() {
+      if (modeMinutely.checked) {
+        if (modeHourly.checked || modeDaily.checked || modeWeekly.checked) {
+          modeHourly.checked = false;
+          modeDaily.checked = false;
+          modeWeekly.checked = false;
+        }
+      }
+
+      if (!modeMinutely.checked && !modeHourly.checked && !modeDaily.checked && !modeWeekly.checked) {
+        modeHourly.checked = true;
+      }
+    }
+
+    function setModeUI() {
+      normalizeModes();
+      const { minutely, hourly, daily, weekly } = getActiveModes();
+
+      minutelyRow.style.display = minutely ? '' : 'none';
+      hourlySection.style.display = (hourly || weekly) ? '' : 'none';
+      minuteOfHourRow.style.display = (hourly || weekly) ? '' : 'none';
+      dailyDailyRow.style.display = daily ? '' : 'none';
+      weeklyRow.style.display = weekly ? '' : 'none';
+      render();
+    }
+
+    function parseNumberOrRangeList(text, min, max, label) {
+      const set = new Set();
+      const errors = [];
+      text.split(',').map((s) => s.trim()).filter(Boolean).forEach((raw) => {
+        const parts = raw.split('-').map((part) => part.trim()).filter(Boolean);
+        if (parts.length === 1) {
+          const n = Number(parts[0]);
+          if (!Number.isInteger(n) || n < min || n > max) {
+            errors.push(`Неверное значение в поле ${label}: ${raw}`);
+            return;
+          }
+          set.add(n);
+          return;
+        }
+        if (parts.length !== 2) {
+          errors.push(`Неверный формат в поле ${label}: ${raw}`);
+          return;
+        }
+        const start = Number(parts[0]);
+        const end = Number(parts[1]);
+        if (!Number.isInteger(start) || !Number.isInteger(end) || start < min || start > max || end < min || end > max) {
+          errors.push(`Неверный диапазон в поле ${label}: ${raw}`);
+          return;
+        }
+        if (start > end) {
+          errors.push(`Неверный диапазон в поле ${label}: ${raw}`);
+          return;
+        }
+        for (let value = start; value <= end; value += 1) {
+          set.add(value);
+        }
+      });
+      return { values: [...set].sort((a, b) => a - b), errors };
+    }
+
+    function collectRanges(root, min, max, label) {
+      const rows = [...root.querySelectorAll('.list-row')];
+      const ranges = [];
+      const errors = [];
+      for (const row of rows) {
+        const [fromEl, toEl] = row.querySelectorAll('input');
+        const fromRaw = fromEl.value.trim();
+        const toRaw = toEl.value.trim();
+        const from = Number(fromRaw);
+        const to = Number(toRaw);
+
+        if (!fromRaw || !toRaw || !Number.isInteger(from) || !Number.isInteger(to) || from < min || from > max || to < min || to > max) {
+          errors.push(`Диапазон ${label}: число должно быть между ${min} и ${max}`);
+          continue;
+        }
+        if (from > to) {
+          errors.push(`Диапазон ${label}: ошибка порядка ${from}-${to}`);
+          continue;
+        }
+        ranges.push([from, to]);
+      }
+      return { ranges, errors };
+    }
+
+    function expandRanges(ranges) {
+      const set = new Set();
+      for (const [from, to] of ranges) {
+        for (let value = from; value <= to; value += 1) {
+          set.add(value);
+        }
+      }
+      return [...set].sort((a, b) => a - b);
+    }
+
+    function collectHours() {
+      const set = new Set();
+      const errors = [];
+      const listResult = parseNumberOrRangeList(document.getElementById('hourListInput').value, 0, 23, 'часы');
+      listResult.values.forEach((v) => set.add(v));
+      errors.push(...listResult.errors);
+
+      const rangeResult = collectRanges(rangesRoot, 0, 23, 'часов');
+      expandRanges(rangeResult.ranges).forEach((v) => set.add(v));
+      errors.push(...rangeResult.errors);
+
+      if (!set.size) {
+        errors.push('Укажите хотя бы один час: через список или диапазоны');
+      }
+
+      return { values: [...set].sort((a, b) => a - b), errors };
+    }
+
+    function collectDays() {
+      if (!getActiveModes().weekly) return { values: [], errors: [] };
+
+      const set = new Set();
+      const errors = [];
+      [...document.querySelectorAll('.weekday:checked')].forEach((el) => {
+        set.add(Number(el.value));
+      });
+
+      const rangeResult = collectRanges(dayRangesRoot, 0, 6, 'дней');
+      expandRanges(rangeResult.ranges).forEach((v) => set.add(v));
+      errors.push(...rangeResult.errors);
+
+      if (!set.size) {
+        errors.push('Выберите хотя бы один день или задайте хотя бы один диапазон дней');
+      }
+
+      return { values: [...set].sort((a, b) => a - b), errors };
+    }
+
+    function getScheduleConfig() {
+      const { minutely, hourly, daily, weekly } = getActiveModes();
+      const mode = minutely ? 'minutely' : (weekly ? 'weekly' : hourly ? 'hourly' : daily ? 'daily' : 'hourly');
+      const cfg = {
+        mode,
+        jobName: document.getElementById('jobName').value.trim() || 'Untitled Job',
+        enabled: true,
+      };
+
+      if (mode === 'minutely') {
+        cfg.intervalMinutes = Number(document.getElementById('minutelyInterval').value);
+      } else if (mode === 'hourly' || mode === 'weekly') {
+        const minute = Number(document.getElementById('minuteOfHour').value);
+        const hoursInfo = collectHours();
+        const daysInfo = mode === 'weekly' ? collectDays() : { values: [], errors: [] };
+        if (mode === 'hourly') {
+          cfg.hourly = {
+            minute,
+            hours: hoursInfo.values,
+          };
+        } else {
+          cfg.weekly = {
+            minute,
+            hours: hoursInfo.values,
+            days: daysInfo.values,
+          };
+        }
+        cfg._errors = hoursInfo.errors;
+        if (mode === 'weekly') {
+          cfg._errors = [...cfg._errors, ...daysInfo.errors];
+        }
+      } else if (mode === 'daily') {
+        cfg.daily = { time: document.getElementById('dailyTime').value || '03:00' };
+      }
+
+      return cfg;
+    }
+
+    function listToCronList(values, allCount) {
+      if (!values.length) {
+        return '*';
+      }
+      if (values.length === allCount) {
+        return '*';
+      }
+
+      const compact = [];
+      let start = values[0];
+      let end = values[0];
+
+      for (let i = 1; i < values.length; i += 1) {
+        if (values[i] === end + 1) {
+          end = values[i];
+          continue;
+        }
+        compact.push(start === end ? `${start}` : `${start}-${end}`);
+        start = values[i];
+        end = values[i];
+      }
+      compact.push(start === end ? `${start}` : `${start}-${end}`);
+
+      return compact.join(',');
+    }
+
+    function cronLike(cfg) {
+      if (cfg.mode === 'minutely') {
+        const interval = cfg.intervalMinutes;
+        const step = Number.isInteger(interval) && interval > 0 ? interval : 1;
+        return `0 ${step >= 1 && step <= 59 ? `*/${step}` : '*' } * * * *`;
+      }
+
+      if (cfg.mode === 'hourly') {
+        const min = Number.isInteger(cfg.hourly.minute) ? Math.max(0, Math.min(59, cfg.hourly.minute)) : 0;
+        const hourExpr = listToCronList(cfg.hourly.hours, 24);
+        return `0 ${String(min)} ${hourExpr} * * *`;
+      }
+
+      if (cfg.mode === 'daily') {
+        const time = cfg.daily.time || '00:00';
+        const [h, m] = time.split(':').map(Number);
+        const minute = Number.isInteger(m) ? m : 0;
+        const hour = Number.isInteger(h) ? h : 0;
+        return `0 ${minute} ${hour} * * *`;
+      }
+
+      if (cfg.mode === 'weekly') {
+        const min = Number.isInteger(cfg.weekly.minute) ? Math.max(0, Math.min(59, cfg.weekly.minute)) : 0;
+        const hourExpr = listToCronList(cfg.weekly.hours, 24);
+        const dayExpr = cfg.weekly.days.length ? listToCronList(cfg.weekly.days, 7) : '*';
+        return `0 ${min} ${hourExpr} * * ${dayExpr}`;
+      }
+
+      return '* * * * * *';
+    }
+
+    function cronSummaryText(cfg) {
+      if (cfg.mode === 'minutely') {
+        return `Каждые ${cfg.intervalMinutes} мин.`;
+      }
+      if (cfg.mode === 'hourly') {
+        const min = String(cfg.hourly.minute).padStart(2, '0');
+        return `Ежечасно в минуту ${min}, часы ${cfg.hourly.hours.length ? listToCronList(cfg.hourly.hours, 24) : 'не выбраны'}`;
+      }
+      if (cfg.mode === 'daily') {
+        return `Ежедневно в ${cfg.daily.time}`;
+      }
+      const dayMap = {1:'Пн',2:'Вт',3:'Ср',4:'Чт',5:'Пт',6:'Сб',0:'Вс'};
+      const dayValues = cfg.weekly.days.sort((a, b) => a - b).map((d) => dayMap[d] ?? d);
+      return `По дням: ${dayValues.length ? dayValues.join(', ') : 'не выбраны'}; минуты ${String(cfg.weekly.minute).padStart(2, '0')}; часы ${cfg.weekly.hours.length ? listToCronList(cfg.weekly.hours, 24) : 'не выбраны'}`;
+    }
+
+    function matchDate(cfg, dt) {
+      const d = new Date(dt);
+      if (cfg.mode === 'minutely') {
+        return true;
+      }
+      const minute = d.getMinutes();
+      const hour = d.getHours();
+      const day = d.getDay();
+      const hhmm = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+
+      if (cfg.mode === 'hourly') {
+        if (minute !== cfg.hourly.minute) return false;
+        return cfg.hourly.hours.includes(hour);
+      }
+      if (cfg.mode === 'daily') {
+        return hhmm === cfg.daily.time;
+      }
+      if (cfg.mode === 'weekly') {
+        return cfg.weekly.days.includes(day) && minute === cfg.weekly.minute && cfg.weekly.hours.includes(hour);
+      }
+      return false;
+    }
+
+    function generateNextRuns(cfg, count = 5) {
+      const out = [];
+      const now = new Date();
+      let cursor = new Date(now.getTime() + 60 * 1000);
+      let guard = 0;
+      const maxMinutes = 60 * 24 * 366; // up to ~1 year
+      const interval = Math.max(1, cfg.mode === 'minutely' ? Math.max(1, Number(cfg.intervalMinutes) || 1) : 1);
+
+      while (out.length < count && guard < maxMinutes) {
+        if (matchDate(cfg, cursor)) {
+          out.push(new Date(cursor));
+        }
+        cursor = new Date(cursor.getTime() + interval * 60 * 1000);
+        guard += interval;
+      }
+
+      return out;
+    }
+
+    function render() {
+      const cfg = getScheduleConfig();
+      const allErrors = [];
+      if (cfg.mode === 'minutely' && (!cfg.intervalMinutes || cfg.intervalMinutes < 1)) {
+        allErrors.push('Интервал должен быть не меньше 1');
+      }
+      if (cfg.mode === 'hourly') {
+        if (cfg._errors?.length) allErrors.push(...cfg._errors);
+        if (!cfg.hourly.hours.length) {
+          allErrors.push('Не выбраны часы для почасового режима');
+        }
+        if (Number.isNaN(cfg.hourly.minute) || cfg.hourly.minute < 0 || cfg.hourly.minute > 59) {
+          allErrors.push('Минута для почасового режима должна быть 0–59');
+        }
+      }
+      if (cfg.mode === 'weekly') {
+        if (cfg._errors?.length) allErrors.push(...cfg._errors);
+        if (!cfg.weekly.hours.length) {
+          allErrors.push('Не выбраны часы для недельного режима');
+        }
+        if (Number.isNaN(cfg.weekly.minute) || cfg.weekly.minute < 0 || cfg.weekly.minute > 59) {
+          allErrors.push('Минута для недельного режима должна быть 0–59');
+        }
+      }
+      if (cfg.mode === 'weekly' && !cfg.weekly.days.length) {
+        allErrors.push('Выберите хотя бы один день недели');
+      }
+      if (cfg.mode === 'daily' && !cfg.daily.time) {
+        allErrors.push('Введите время запуска');
+      }
+
+      const hasErrors = allErrors.length > 0;
+      statusSummary.innerHTML = hasErrors
+        ? `<span class="bad">Ошибка:</span> ${allErrors.join(' | ')}`
+        : `<span class="ok">Готово:</span> ${cronSummaryText(cfg)}`;
+
+      cronExpressionEl.textContent = cronLike(cfg);
+
+      const schedule = getScheduleConfig();
+      if (schedule.mode === 'hourly' || schedule.mode === 'weekly') {
+        delete schedule._errors;
+      }
+
+      const preview = hasErrors
+        ? 'Исправьте ошибки, чтобы увидеть следующий запуск.'
+        : generateNextRuns(schedule)
+            .map((d, idx) => `${idx + 1}. ${d.toLocaleString('ru-RU')}`)
+            .join('\n');
+
+      nextRunsEl.textContent = hasErrors ? preview : preview || 'Не найдено подходящих дат в ближайший год';
+      configJson.textContent = JSON.stringify(schedule, null, 2);
+    }
+
+    function addRangeRow(root, min, max, buttonText = 'Удалить') {
+      const row = document.createElement('div');
+      row.className = 'list-row';
+      row.innerHTML = `
+        <input class="control mini" type="number" min="${min}" max="${max}" value="${min}" aria-label="from" />
+        <span>—</span>
+        <input class="control mini" type="number" min="${min}" max="${max}" value="${max}" aria-label="to" />
+        <button class="btn" type="button" data-remove>${buttonText}</button>
+      `;
+      root.appendChild(row);
+      const removeBtn = row.querySelector('[data-remove]');
+      removeBtn.addEventListener('click', () => {
+        if (root.querySelectorAll('.list-row').length > 1) {
+          row.remove();
+          render();
+        }
+      });
+      row.querySelectorAll('input').forEach((el) => {
+        el.addEventListener('input', render);
+        el.addEventListener('change', render);
+      });
+      return row;
+    }
+
+    function bindEvents() {
+      [modeMinutely, modeHourly, modeDaily, modeWeekly].forEach((el) => {
+        el.addEventListener('change', () => {
+          setModeUI();
+        });
+      });
+
+      document.getElementById('addRange').addEventListener('click', () => {
+        addRangeRow(rangesRoot, 0, 23);
+      });
+
+      document.getElementById('addDayRange').addEventListener('click', () => {
+        addRangeRow(dayRangesRoot, 0, 6, 'Удалить');
+      });
+
+      const attachInitialRemoveHandlers = (root) => {
+        const removeBtn = root.querySelector('[data-remove]');
+        if (removeBtn) {
+          removeBtn.addEventListener('click', function () {
+            if (root.querySelectorAll('.list-row').length > 1) {
+              this.closest('.list-row').remove();
+              render();
+            }
+          });
+        }
+      };
+      attachInitialRemoveHandlers(rangesRoot);
+      attachInitialRemoveHandlers(dayRangesRoot);
+
+      [...rangesRoot.querySelectorAll('input'), ...dayRangesRoot.querySelectorAll('input'), ...document.querySelectorAll('.weekday')].forEach((el) => {
+        el.addEventListener('input', render);
+        el.addEventListener('change', render);
+      });
+
+      document.getElementById('resetBtn').addEventListener('click', () => {
+        document.getElementById('minutelyInterval').value = 10;
+        document.getElementById('hourListInput').value = '1,3,6,10,18';
+        document.getElementById('minuteOfHour').value = 0;
+        document.getElementById('dailyTime').value = '03:30';
+        document.getElementById('jobName').value = 'SQL Extractor Poll';
+        rangesRoot.innerHTML = '';
+        dayRangesRoot.innerHTML = '';
+        modeMinutely.checked = false;
+        modeHourly.checked = true;
+        modeDaily.checked = false;
+        modeWeekly.checked = false;
+        setModeUI();
+      });
+
+      document.getElementById('saveBtn').addEventListener('click', () => {
+        const cfg = getScheduleConfig();
+        if (cfg.mode === 'hourly' || cfg.mode === 'weekly') {
+          delete cfg._errors;
+        }
+        const message = `Сохранено: ${JSON.stringify(cfg, null, 2)}`;
+        alert(message);
+      });
+
+      document.querySelectorAll('input, select, .weekday').forEach((el) => {
+        el.addEventListener('input', render);
+        el.addEventListener('change', render);
+      });
+    }
+
+    setModeUI();
+    bindEvents();
+    render();
+  </script>
+</body>
+</html>
