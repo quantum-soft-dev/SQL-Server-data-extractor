@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SQL Extractor — WPF Implementation Guide</title>
+  <style>
+    :root{--bg-0:#eef3f8;--panel:#fff;--line:#d9e2ef;--line-light:#e5ecf6;--text:#0e1a2b;--muted:#4f607a;--subtle:#5a6b84;--primary:#1f6fe5;--r-md:10px;--r-lg:14px;--font:"Segoe UI Variable","IBM Plex Sans","Segoe UI",sans-serif;--font-mono:"Cascadia Mono","Consolas",monospace}
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:var(--font);color:var(--text);background:var(--bg-0);padding:32px;line-height:1.6}
+    .spec{max-width:1100px;margin:0 auto}
+    .spec-header{text-align:center;padding:48px 0 32px;border-bottom:2px solid var(--line);margin-bottom:48px}
+    .spec-header h1{font-size:36px;font-weight:800;letter-spacing:-0.5px}
+    .spec-header p{color:var(--muted);font-size:16px;margin-top:8px}
+    .section{margin-bottom:48px}
+    .section h2{font-size:24px;font-weight:760;letter-spacing:-0.3px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+    .section>p{color:var(--muted);font-size:14px;margin-bottom:20px}
+    .section h3{font-size:16px;font-weight:700;margin:20px 0 10px}
+    pre{background:#0b1522;color:#d9e7ff;border-radius:12px;border:1px solid #1d3555;padding:16px;font-family:var(--font-mono);font-size:12px;line-height:1.6;overflow-x:auto;margin:12px 0}
+    pre .kw{color:#7dd3fc}
+    pre .str{color:#86efac}
+    pre .attr{color:#fde68a}
+    pre .cmt{color:#64748b}
+    pre .tag{color:#fca5a5}
+    code{font-family:var(--font-mono);font-size:12px;background:#f2f5fa;padding:2px 6px;border-radius:4px}
+    .token-table{width:100%;border-collapse:collapse;font-size:13px}
+    .token-table th{text-align:left;padding:10px 8px;border-bottom:2px solid var(--line);font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--subtle)}
+    .token-table td{padding:10px 8px;border-bottom:1px solid var(--line-light);vertical-align:top}
+    .token-table code{font-family:var(--font-mono);font-size:12px;color:var(--primary)}
+    .note{background:#eff6ff;border:1px solid #bfdbfe;border-radius:var(--r-md);padding:12px 16px;font-size:13px;color:#1e40af;margin:12px 0}
+  </style>
+</head>
+<body>
+<div class="spec">
+
+  <header class="spec-header">
+    <h1>WPF Implementation Guide</h1>
+    <p>SQL Server Data Extractor — .NET WPF mapping from Design System to XAML</p>
+    <p style="font-size:13px;color:#4f607a;margin-top:4px;">Target: .NET 8+ &bull; WPF &bull; MVVM &bull; CommunityToolkit.Mvvm</p>
+  </header>
+
+  <!-- ═══════════════ PROJECT STRUCTURE ═══════════════ -->
+  <section class="section">
+    <h2>1. Recommended Project Structure</h2>
+<pre>
+SQLExtractor.App/
+├── App.xaml                  <span class="cmt">// Application resources, merged dictionaries</span>
+├── Themes/
+│   ├── Colors.xaml           <span class="cmt">// SolidColorBrush resources (from Design System)</span>
+│   ├── Typography.xaml       <span class="cmt">// TextBlock styles (h1-page, body, etc.)</span>
+│   ├── Buttons.xaml          <span class="cmt">// Button styles (Primary, Default, Ghost, Danger)</span>
+│   ├── Inputs.xaml           <span class="cmt">// TextBox, ComboBox, CheckBox, RadioButton styles</span>
+│   ├── Tags.xaml             <span class="cmt">// Tag/Badge control styles</span>
+│   ├── Cards.xaml            <span class="cmt">// Card panel styles</span>
+│   └── Shared.xaml           <span class="cmt">// Converters, common templates</span>
+├── Controls/
+│   ├── StatusChip.xaml       <span class="cmt">// Dot + label composite control</span>
+│   ├── ProgressBar.xaml      <span class="cmt">// Custom styled progress bar</span>
+│   ├── LogConsole.xaml       <span class="cmt">// Terminal-like log viewer</span>
+│   ├── WizardStepper.xaml    <span class="cmt">// Horizontal step indicator</span>
+│   └── TagBadge.xaml         <span class="cmt">// Colored pill tag</span>
+├── Views/
+│   ├── MainWindow.xaml       <span class="cmt">// App shell: topbar + sidebar + content host</span>
+│   ├── Wizard/
+│   │   ├── WelcomePage.xaml
+│   │   ├── ConnectSqlPage.xaml
+│   │   ├── DownstreamAuthPage.xaml
+│   │   ├── SelectTablesPage.xaml
+│   │   ├── CdcPolicyPage.xaml
+│   │   ├── SchedulePage.xaml
+│   │   ├── ReviewApplyPage.xaml
+│   │   ├── BootstrapRunPage.xaml
+│   │   └── DonePage.xaml
+│   └── Manager/
+│       ├── DashboardPage.xaml
+│       ├── RunsPage.xaml
+│       ├── RunDetailsPage.xaml
+│       ├── TablesPage.xaml
+│       ├── DiagnosticsPage.xaml
+│       ├── SettingsPage.xaml
+│       └── LogsPage.xaml
+├── ViewModels/
+│   ├── MainViewModel.cs
+│   ├── Wizard/
+│   │   └── ...ViewModel.cs
+│   └── Manager/
+│       └── ...ViewModel.cs
+└── Services/
+    ├── IIpcClient.cs          <span class="cmt">// Named Pipes + StreamJsonRpc</span>
+    ├── IConfigService.cs
+    └── INavigationService.cs
+</pre>
+  </section>
+
+  <!-- ═══════════════ COLOR RESOURCES ═══════════════ -->
+  <section class="section">
+    <h2>2. Color Resources (Colors.xaml)</h2>
+    <p>Map all design tokens to <code>SolidColorBrush</code> resources.</p>
+<pre>
+<span class="tag">&lt;ResourceDictionary</span> <span class="attr">xmlns</span>=<span class="str">"http://schemas.microsoft.com/winfx/2006/xaml/presentation"</span>
+                    <span class="attr">xmlns:x</span>=<span class="str">"http://schemas.microsoft.com/winfx/2006/xaml"</span><span class="tag">&gt;</span>
+
+  <span class="cmt">&lt;!-- Background / Surface --&gt;</span>
+  <span class="tag">&lt;SolidColorBrush</span> <span class="attr">x:Key</span>=<span class="str">"Bg0Brush"</span>           <span class="attr">Color</span>=<span class="str">"#EEF3F8"</span> <span class="tag">/&gt;</span>
+  <span class="tag">&lt;SolidColorBrush</span> <span class="attr">x:Key</span>=<span class="str">"Bg1Brush"</span>           <span class="attr">Color</span>=<span class="str">"#F7F9FC"</span> <span class="tag">/&gt;</span>
+  <span class="tag">&lt;SolidColorBrush</span> <span class="attr">x:Key</span>=<span class="str">"PanelBrush"</span>         <span class="attr">Color</span>=<span class="str">"#FFFFFF"</span> <span class="tag">/&gt;</span>
+  <span class="tag">&lt;SolidColorBrush</span> <span class="attr">x:Key</span>=<span class="str">"PanelSoftBrush"</span>     <span class="attr">Color</span>=<span class="str">"#F2F5FA"</span> <span class="tag">/&gt;</span>
+
+  <span class="cmt">&lt;!-- Text --&gt;</span>
+  <span class="tag">&lt;SolidColorBrush</span> <span class="attr">x:Key</span>=<span class="str">"TextBrush"</span>          <span class="attr">Color</span>=<span class="str">"#0E1A2B"</span> <span class="tag">/&gt;</span>
+  <span class="tag">&lt;SolidColorBrush</span> <span class="attr">x:Key</span>=<span class="str">"MutedBrush"</span>         <span class="attr">Color</span>=<span class="str">"#4F607A"</span> <span class="tag">/&gt;</span>
+  <span class="tag">&lt;SolidColorBrush</span> <span class="attr">x:Key</span>=<span class="str">"SubtleBrush"</span>        <span class="attr">Color</span>=<span class="str">"#5A6B84"</span> <span class="tag">/&gt;</span>
+
+  <span class="cmt">&lt;!-- Borders --&gt;</span>
+  <span class="tag">&lt;SolidColorBrush</span> <span class="attr">x:Key</span>=<span class="str">"LineBrush"</span>          <span class="attr">Color</span>=<span class="str">"#D9E2EF"</span> <span class="tag">/&gt;</span>
+  <span class="tag">&lt;SolidColorBrush</span> <span class="attr">x:Key</span>=<span class="str">"LineLightBrush"</span>     <span class="attr">Color</span>=<span class="str">"#E5ECF6"</span> <span class="tag">/&gt;</span>
+
+  <span class="cmt">&lt;!-- Primary --&gt;</span>
+  <span class="tag">&lt;SolidColorBrush</span> <span class="attr">x:Key</span>=<span class="str">"PrimaryBrush"</span>       <span class="attr">Color</span>=<span class="str">"#1F6FE5"</span> <span class="tag">/&gt;</span>
+  <span class="tag">&lt;SolidColorBrush</span> <span class="attr">x:Key</span>=<span class="str">"Primary2Brush"</span>      <span class="attr">Color</span>=<span class="str">"#2E82FF"</span> <span class="tag">/&gt;</span>
+  <span class="tag">&lt;SolidColorBrush</span> <span class="attr">x:Key</span>=<span class="str">"PrimaryBorderBrush"</span> <span class="attr">Color</span>=<span class="str">"#1D62C4"</span> <span class="tag">/&gt;</span>
+
+  <span class="cmt">&lt;!-- Semantic --&gt;</span>
+  <span class="tag">&lt;SolidColorBrush</span> <span class="attr">x:Key</span>=<span class="str">"GoodBrush"</span>          <span class="attr">Color</span>=<span class="str">"#16A34A"</span> <span class="tag">/&gt;</span>
+  <span class="tag">&lt;SolidColorBrush</span> <span class="attr">x:Key</span>=<span class="str">"WarnBrush"</span>          <span class="attr">Color</span>=<span class="str">"#D97706"</span> <span class="tag">/&gt;</span>
+  <span class="tag">&lt;SolidColorBrush</span> <span class="attr">x:Key</span>=<span class="str">"BadBrush"</span>           <span class="attr">Color</span>=<span class="str">"#DC2626"</span> <span class="tag">/&gt;</span>
+
+  <span class="cmt">&lt;!-- Navigation --&gt;</span>
+  <span class="tag">&lt;SolidColorBrush</span> <span class="attr">x:Key</span>=<span class="str">"NavBgBrush"</span>         <span class="attr">Color</span>=<span class="str">"#0D1B2A"</span> <span class="tag">/&gt;</span>
+  <span class="tag">&lt;SolidColorBrush</span> <span class="attr">x:Key</span>=<span class="str">"NavBgEndBrush"</span>      <span class="attr">Color</span>=<span class="str">"#08131F"</span> <span class="tag">/&gt;</span>
+  <span class="tag">&lt;SolidColorBrush</span> <span class="attr">x:Key</span>=<span class="str">"NavItemBgBrush"</span>     <span class="attr">Color</span>=<span class="str">"#0F2035"</span> <span class="tag">/&gt;</span>
+  <span class="tag">&lt;SolidColorBrush</span> <span class="attr">x:Key</span>=<span class="str">"NavItemBorderBrush"</span>  <span class="attr">Color</span>=<span class="str">"#1F3656"</span> <span class="tag">/&gt;</span>
+  <span class="tag">&lt;SolidColorBrush</span> <span class="attr">x:Key</span>=<span class="str">"NavActiveBorderBrush"</span><span class="attr">Color</span>=<span class="str">"#2F5B95"</span> <span class="tag">/&gt;</span>
+  <span class="tag">&lt;SolidColorBrush</span> <span class="attr">x:Key</span>=<span class="str">"NavBodyTextBrush"</span>   <span class="attr">Color</span>=<span class="str">"#D7E3F4"</span> <span class="tag">/&gt;</span>
+  <span class="tag">&lt;SolidColorBrush</span> <span class="attr">x:Key</span>=<span class="str">"NavTextBrush"</span>       <span class="attr">Color</span>=<span class="str">"#BDD0EA"</span> <span class="tag">/&gt;</span>
+  <span class="tag">&lt;SolidColorBrush</span> <span class="attr">x:Key</span>=<span class="str">"NavTextActiveBrush"</span> <span class="attr">Color</span>=<span class="str">"#FFFFFF"</span> <span class="tag">/&gt;</span>
+
+  <span class="cmt">&lt;!-- Tags: OK --&gt;</span>
+  <span class="tag">&lt;SolidColorBrush</span> <span class="attr">x:Key</span>=<span class="str">"TagOkBgBrush"</span>       <span class="attr">Color</span>=<span class="str">"#ECFDF5"</span> <span class="tag">/&gt;</span>
+  <span class="tag">&lt;SolidColorBrush</span> <span class="attr">x:Key</span>=<span class="str">"TagOkBorderBrush"</span>   <span class="attr">Color</span>=<span class="str">"#A7F3D0"</span> <span class="tag">/&gt;</span>
+  <span class="tag">&lt;SolidColorBrush</span> <span class="attr">x:Key</span>=<span class="str">"TagOkTextBrush"</span>     <span class="attr">Color</span>=<span class="str">"#166534"</span> <span class="tag">/&gt;</span>
+  <span class="cmt">&lt;!-- Tags: Fail --&gt;</span>
+  <span class="tag">&lt;SolidColorBrush</span> <span class="attr">x:Key</span>=<span class="str">"TagFailBgBrush"</span>     <span class="attr">Color</span>=<span class="str">"#FEF2F2"</span> <span class="tag">/&gt;</span>
+  <span class="tag">&lt;SolidColorBrush</span> <span class="attr">x:Key</span>=<span class="str">"TagFailBorderBrush"</span> <span class="attr">Color</span>=<span class="str">"#FECACA"</span> <span class="tag">/&gt;</span>
+  <span class="tag">&lt;SolidColorBrush</span> <span class="attr">x:Key</span>=<span class="str">"TagFailTextBrush"</span>   <span class="attr">Color</span>=<span class="str">"#991B1B"</span> <span class="tag">/&gt;</span>
+  <span class="cmt">&lt;!-- Tags: Running --&gt;</span>
+  <span class="tag">&lt;SolidColorBrush</span> <span class="attr">x:Key</span>=<span class="str">"TagRunBgBrush"</span>      <span class="attr">Color</span>=<span class="str">"#EFF6FF"</span> <span class="tag">/&gt;</span>
+  <span class="tag">&lt;SolidColorBrush</span> <span class="attr">x:Key</span>=<span class="str">"TagRunBorderBrush"</span>  <span class="attr">Color</span>=<span class="str">"#BFDBFE"</span> <span class="tag">/&gt;</span>
+  <span class="tag">&lt;SolidColorBrush</span> <span class="attr">x:Key</span>=<span class="str">"TagRunTextBrush"</span>    <span class="attr">Color</span>=<span class="str">"#1E40AF"</span> <span class="tag">/&gt;</span>
+  <span class="cmt">&lt;!-- Tags: Warning --&gt;</span>
+  <span class="tag">&lt;SolidColorBrush</span> <span class="attr">x:Key</span>=<span class="str">"TagWarnBgBrush"</span>     <span class="attr">Color</span>=<span class="str">"#FFFBEB"</span> <span class="tag">/&gt;</span>
+  <span class="tag">&lt;SolidColorBrush</span> <span class="attr">x:Key</span>=<span class="str">"TagWarnBorderBrush"</span> <span class="attr">Color</span>=<span class="str">"#FDE68A"</span> <span class="tag">/&gt;</span>
+  <span class="tag">&lt;SolidColorBrush</span> <span class="attr">x:Key</span>=<span class="str">"TagWarnTextBrush"</span>   <span class="attr">Color</span>=<span class="str">"#92400E"</span> <span class="tag">/&gt;</span>
+  <span class="cmt">&lt;!-- Tags: Snapshot --&gt;</span>
+  <span class="tag">&lt;SolidColorBrush</span> <span class="attr">x:Key</span>=<span class="str">"TagSnapBgBrush"</span>     <span class="attr">Color</span>=<span class="str">"#FAF5FF"</span> <span class="tag">/&gt;</span>
+  <span class="tag">&lt;SolidColorBrush</span> <span class="attr">x:Key</span>=<span class="str">"TagSnapBorderBrush"</span> <span class="attr">Color</span>=<span class="str">"#D8B4FE"</span> <span class="tag">/&gt;</span>
+  <span class="tag">&lt;SolidColorBrush</span> <span class="attr">x:Key</span>=<span class="str">"TagSnapTextBrush"</span>   <span class="attr">Color</span>=<span class="str">"#6B21A8"</span> <span class="tag">/&gt;</span>
+
+  <span class="cmt">&lt;!-- Log Console --&gt;</span>
+  <span class="tag">&lt;SolidColorBrush</span> <span class="attr">x:Key</span>=<span class="str">"LogBgBrush"</span>         <span class="attr">Color</span>=<span class="str">"#0B1522"</span> <span class="tag">/&gt;</span>
+  <span class="tag">&lt;SolidColorBrush</span> <span class="attr">x:Key</span>=<span class="str">"LogBorderBrush"</span>     <span class="attr">Color</span>=<span class="str">"#1D3555"</span> <span class="tag">/&gt;</span>
+  <span class="tag">&lt;SolidColorBrush</span> <span class="attr">x:Key</span>=<span class="str">"LogTextBrush"</span>       <span class="attr">Color</span>=<span class="str">"#D9E7FF"</span> <span class="tag">/&gt;</span>
+  <span class="tag">&lt;SolidColorBrush</span> <span class="attr">x:Key</span>=<span class="str">"LogOkBrush"</span>         <span class="attr">Color</span>=<span class="str">"#86EFAC"</span> <span class="tag">/&gt;</span>
+  <span class="tag">&lt;SolidColorBrush</span> <span class="attr">x:Key</span>=<span class="str">"LogWarnBrush"</span>       <span class="attr">Color</span>=<span class="str">"#FDE68A"</span> <span class="tag">/&gt;</span>
+  <span class="tag">&lt;SolidColorBrush</span> <span class="attr">x:Key</span>=<span class="str">"LogErrBrush"</span>        <span class="attr">Color</span>=<span class="str">"#FCA5A5"</span> <span class="tag">/&gt;</span>
+
+  <span class="cmt">&lt;!-- Progress Bar --&gt;</span>
+  <span class="tag">&lt;SolidColorBrush</span> <span class="attr">x:Key</span>=<span class="str">"BarTrackBrush"</span>      <span class="attr">Color</span>=<span class="str">"#E6EDF7"</span> <span class="tag">/&gt;</span>
+
+  <span class="cmt">&lt;!-- Danger Button --&gt;</span>
+  <span class="tag">&lt;SolidColorBrush</span> <span class="attr">x:Key</span>=<span class="str">"DangerBrush"</span>        <span class="attr">Color</span>=<span class="str">"#EF4444"</span> <span class="tag">/&gt;</span>
+  <span class="tag">&lt;SolidColorBrush</span> <span class="attr">x:Key</span>=<span class="str">"DangerDarkBrush"</span>    <span class="attr">Color</span>=<span class="str">"#DC2626"</span> <span class="tag">/&gt;</span>
+  <span class="tag">&lt;SolidColorBrush</span> <span class="attr">x:Key</span>=<span class="str">"DangerBorderBrush"</span>  <span class="attr">Color</span>=<span class="str">"#B91C1C"</span> <span class="tag">/&gt;</span>
+
+<span class="tag">&lt;/ResourceDictionary&gt;</span>
+</pre>
+  </section>
+
+  <!-- ═══════════════ CONTROL MAPPING ═══════════════ -->
+  <section class="section">
+    <h2>3. WPF Control Mapping</h2>
+    <p>Map each design component to native WPF controls with custom <code>ControlTemplate</code>/<code>Style</code>.</p>
+
+    <table class="token-table">
+      <thead><tr><th>Design Component</th><th>WPF Control</th><th>Key Styling</th></tr></thead>
+      <tbody>
+        <tr><td>Button (Default)</td><td><code>Button</code></td><td>Custom ControlTemplate, Border with CornerRadius=10, LinearGradientBrush for Primary</td></tr>
+        <tr><td>Button (Primary)</td><td><code>Button</code> + Style</td><td>LinearGradientBrush background (#2E82FF → #1F6FE5), white foreground</td></tr>
+        <tr><td>Text Input</td><td><code>TextBox</code></td><td>Custom template: Border CornerRadius=10, focus trigger changes BorderBrush to Primary</td></tr>
+        <tr><td>Password</td><td><code>PasswordBox</code></td><td>Same styling as TextBox</td></tr>
+        <tr><td>Dropdown</td><td><code>ComboBox</code></td><td>Custom template with rounded border, chevron icon</td></tr>
+        <tr><td>Checkbox</td><td><code>CheckBox</code></td><td>Custom template: 18×18 Border CornerRadius=4, checked state fills with Primary + checkmark</td></tr>
+        <tr><td>Radio</td><td><code>RadioButton</code></td><td>Custom template: 18×18 Ellipse, selected shows 10px inner dot</td></tr>
+        <tr><td>Status Chip</td><td>Custom <code>UserControl</code></td><td>Border CornerRadius=999, Ellipse dot with DropShadowEffect for glow</td></tr>
+        <tr><td>Tag/Badge</td><td>Custom <code>UserControl</code></td><td>Border CornerRadius=999, DataTrigger sets bg/border/text per variant (ok/fail/run/warn)</td></tr>
+        <tr><td>Stat Card</td><td><code>Border</code> + <code>StackPanel</code></td><td>CornerRadius=14, DropShadowEffect for shadow-md</td></tr>
+        <tr><td>Panel</td><td><code>Border</code> + content</td><td>CornerRadius=14, 1px border #D9E2EF</td></tr>
+        <tr><td>Data Table</td><td><code>DataGrid</code></td><td>Custom HeaderStyle, CellStyle, RowStyle. No gridlines, bottom border per row</td></tr>
+        <tr><td>Progress Bar</td><td><code>ProgressBar</code></td><td>Custom template: Track=pill track, Fill=gradient pill. Height=8</td></tr>
+        <tr><td>Nav Item</td><td><code>RadioButton</code> (grouped)</td><td>Custom template: Border CornerRadius=10, IsChecked triggers active style</td></tr>
+        <tr><td>Wizard Stepper</td><td>Custom <code>ItemsControl</code></td><td>Circle (Ellipse/Border), Line (Rectangle), DataTemplate per step state</td></tr>
+        <tr><td>Log Console</td><td><code>RichTextBox</code> or <code>ItemsControl</code></td><td>Dark bg, Cascadia Mono font, color per severity. VirtualizingStackPanel for performance</td></tr>
+        <tr><td>Alert</td><td>Custom <code>UserControl</code></td><td>Border CornerRadius=10, DataTrigger per severity (info/success/warn/error)</td></tr>
+        <tr><td>Tooltip</td><td><code>ToolTip</code></td><td>Custom template: dark bg #0D1B2A, white text, CornerRadius=6</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ═══════════════ LAYOUT PATTERNS ═══════════════ -->
+  <section class="section">
+    <h2>4. Layout Patterns</h2>
+
+    <h3>4.1 App Shell (MainWindow.xaml)</h3>
+<pre>
+<span class="tag">&lt;Window&gt;</span>
+  <span class="tag">&lt;Border</span> <span class="attr">CornerRadius</span>=<span class="str">"18"</span> <span class="attr">BorderThickness</span>=<span class="str">"1"</span> <span class="attr">BorderBrush</span>=<span class="str">"{StaticResource LineBrush}"</span><span class="tag">&gt;</span>
+    <span class="tag">&lt;Grid&gt;</span>
+      <span class="tag">&lt;Grid.RowDefinitions&gt;</span>
+        <span class="tag">&lt;RowDefinition</span> <span class="attr">Height</span>=<span class="str">"Auto"</span> <span class="tag">/&gt;</span>    <span class="cmt">&lt;!-- TopBar --&gt;</span>
+        <span class="tag">&lt;RowDefinition</span> <span class="attr">Height</span>=<span class="str">"*"</span> <span class="tag">/&gt;</span>       <span class="cmt">&lt;!-- Content --&gt;</span>
+      <span class="tag">&lt;/Grid.RowDefinitions&gt;</span>
+
+      <span class="cmt">&lt;!-- TopBar --&gt;</span>
+      <span class="tag">&lt;Border</span> <span class="attr">Grid.Row</span>=<span class="str">"0"</span> <span class="attr">Padding</span>=<span class="str">"12,18"</span> <span class="attr">BorderThickness</span>=<span class="str">"0,0,0,1"</span><span class="tag">&gt;</span>
+        <span class="tag">&lt;DockPanel&gt;</span>
+          <span class="tag">&lt;TextBlock</span> <span class="attr">Text</span>=<span class="str">"SQL Server Data Extractor"</span> <span class="attr">Style</span>=<span class="str">"{StaticResource TitleBarStyle}"</span> <span class="tag">/&gt;</span>
+          <span class="tag">&lt;ItemsControl</span> <span class="attr">DockPanel.Dock</span>=<span class="str">"Right"</span> <span class="attr">ItemsSource</span>=<span class="str">"{Binding StatusChips}"</span> <span class="tag">/&gt;</span>
+        <span class="tag">&lt;/DockPanel&gt;</span>
+      <span class="tag">&lt;/Border&gt;</span>
+
+      <span class="cmt">&lt;!-- Main layout --&gt;</span>
+      <span class="tag">&lt;Grid</span> <span class="attr">Grid.Row</span>=<span class="str">"1"</span><span class="tag">&gt;</span>
+        <span class="tag">&lt;Grid.ColumnDefinitions&gt;</span>
+          <span class="tag">&lt;ColumnDefinition</span> <span class="attr">Width</span>=<span class="str">"270"</span> <span class="tag">/&gt;</span>  <span class="cmt">&lt;!-- Sidebar --&gt;</span>
+          <span class="tag">&lt;ColumnDefinition</span> <span class="attr">Width</span>=<span class="str">"*"</span> <span class="tag">/&gt;</span>    <span class="cmt">&lt;!-- Content --&gt;</span>
+        <span class="tag">&lt;/Grid.ColumnDefinitions&gt;</span>
+
+        <span class="tag">&lt;Border</span> <span class="attr">Grid.Column</span>=<span class="str">"0"</span> <span class="attr">Background</span>=<span class="str">"{StaticResource NavBgBrush}"</span><span class="tag">&gt;</span>
+          <span class="cmt">&lt;!-- Sidebar content --&gt;</span>
+        <span class="tag">&lt;/Border&gt;</span>
+
+        <span class="tag">&lt;ContentControl</span> <span class="attr">Grid.Column</span>=<span class="str">"1"</span> <span class="attr">Content</span>=<span class="str">"{Binding CurrentPage}"</span> <span class="tag">/&gt;</span>
+      <span class="tag">&lt;/Grid&gt;</span>
+    <span class="tag">&lt;/Grid&gt;</span>
+  <span class="tag">&lt;/Border&gt;</span>
+<span class="tag">&lt;/Window&gt;</span>
+</pre>
+
+    <h3>4.2 Navigation (MVVM)</h3>
+    <div class="note">Use <code>CommunityToolkit.Mvvm</code> for <code>[ObservableProperty]</code>, <code>[RelayCommand]</code>. Sidebar navigation items are <code>RadioButton</code> styled as nav items, grouped so only one is active. Bind <code>IsChecked</code> to VM property and switch <code>CurrentPage</code>.</div>
+
+    <h3>4.3 Wizard Navigation</h3>
+<pre>
+<span class="cmt">// WizardViewModel.cs</span>
+<span class="kw">public partial class</span> WizardViewModel : ObservableObject
+{
+    [ObservableProperty] <span class="kw">private int</span> currentStep = 0;
+    [ObservableProperty] <span class="kw">private</span> ObservableObject currentPage;
+
+    <span class="kw">private readonly</span> List&lt;ObservableObject&gt; _pages = <span class="kw">new</span>()
+    {
+        <span class="kw">new</span> WelcomeViewModel(),
+        <span class="kw">new</span> ConnectSqlViewModel(),
+        <span class="kw">new</span> DownstreamAuthViewModel(),
+        <span class="cmt">// ... 9 pages total</span>
+    };
+
+    [RelayCommand]
+    <span class="kw">private void</span> Next() { <span class="kw">if</span> (CurrentStep &lt; 8) CurrentPage = _pages[++CurrentStep]; }
+
+    [RelayCommand]
+    <span class="kw">private void</span> Back() { <span class="kw">if</span> (CurrentStep > 0) CurrentPage = _pages[--CurrentStep]; }
+}
+</pre>
+  </section>
+
+  <!-- ═══════════════ KEY COMPONENTS XAML ═══════════════ -->
+  <section class="section">
+    <h2>5. Key Component XAML Snippets</h2>
+
+    <h3>5.1 Primary Button Style</h3>
+<pre>
+<span class="tag">&lt;Style</span> <span class="attr">x:Key</span>=<span class="str">"PrimaryButtonStyle"</span> <span class="attr">TargetType</span>=<span class="str">"Button"</span><span class="tag">&gt;</span>
+  <span class="tag">&lt;Setter</span> <span class="attr">Property</span>=<span class="str">"Template"</span><span class="tag">&gt;</span>
+    <span class="tag">&lt;Setter.Value&gt;</span>
+      <span class="tag">&lt;ControlTemplate</span> <span class="attr">TargetType</span>=<span class="str">"Button"</span><span class="tag">&gt;</span>
+        <span class="tag">&lt;Border</span> <span class="attr">CornerRadius</span>=<span class="str">"10"</span>
+                <span class="attr">BorderThickness</span>=<span class="str">"1"</span>
+                <span class="attr">BorderBrush</span>=<span class="str">"#1D62C4"</span>
+                <span class="attr">Padding</span>=<span class="str">"12,8"</span><span class="tag">&gt;</span>
+          <span class="tag">&lt;Border.Background&gt;</span>
+            <span class="tag">&lt;LinearGradientBrush</span> <span class="attr">StartPoint</span>=<span class="str">"0,0"</span> <span class="attr">EndPoint</span>=<span class="str">"0,1"</span><span class="tag">&gt;</span>
+              <span class="tag">&lt;GradientStop</span> <span class="attr">Color</span>=<span class="str">"#2E82FF"</span> <span class="attr">Offset</span>=<span class="str">"0"</span> <span class="tag">/&gt;</span>
+              <span class="tag">&lt;GradientStop</span> <span class="attr">Color</span>=<span class="str">"#1F6FE5"</span> <span class="attr">Offset</span>=<span class="str">"1"</span> <span class="tag">/&gt;</span>
+            <span class="tag">&lt;/LinearGradientBrush&gt;</span>
+          <span class="tag">&lt;/Border.Background&gt;</span>
+          <span class="tag">&lt;ContentPresenter</span> <span class="attr">HorizontalAlignment</span>=<span class="str">"Center"</span> <span class="tag">/&gt;</span>
+        <span class="tag">&lt;/Border&gt;</span>
+      <span class="tag">&lt;/ControlTemplate&gt;</span>
+    <span class="tag">&lt;/Setter.Value&gt;</span>
+  <span class="tag">&lt;/Setter&gt;</span>
+  <span class="tag">&lt;Setter</span> <span class="attr">Property</span>=<span class="str">"Foreground"</span> <span class="attr">Value</span>=<span class="str">"White"</span> <span class="tag">/&gt;</span>
+  <span class="tag">&lt;Setter</span> <span class="attr">Property</span>=<span class="str">"FontWeight"</span> <span class="attr">Value</span>=<span class="str">"SemiBold"</span> <span class="tag">/&gt;</span>
+  <span class="tag">&lt;Setter</span> <span class="attr">Property</span>=<span class="str">"FontSize"</span> <span class="attr">Value</span>=<span class="str">"13"</span> <span class="tag">/&gt;</span>
+<span class="tag">&lt;/Style&gt;</span>
+</pre>
+
+    <h3>5.2 Tag/Badge UserControl</h3>
+<pre>
+<span class="cmt">&lt;!-- TagBadge.xaml - Properties: Text, Variant (Ok/Fail/Run/Warn/Snap) --&gt;</span>
+<span class="tag">&lt;UserControl</span> <span class="attr">x:Class</span>=<span class="str">"SQLExtractor.Controls.TagBadge"</span><span class="tag">&gt;</span>
+  <span class="tag">&lt;Border</span> <span class="attr">x:Name</span>=<span class="str">"Root"</span>
+          <span class="attr">CornerRadius</span>=<span class="str">"999"</span>
+          <span class="attr">BorderThickness</span>=<span class="str">"1"</span>
+          <span class="attr">Padding</span>=<span class="str">"8,4"</span><span class="tag">&gt;</span>
+    <span class="tag">&lt;TextBlock</span> <span class="attr">Text</span>=<span class="str">"{Binding Text, RelativeSource={RelativeSource AncestorType=UserControl}}"</span>
+               <span class="attr">FontSize</span>=<span class="str">"11"</span> <span class="attr">FontWeight</span>=<span class="str">"Bold"</span> <span class="tag">/&gt;</span>
+  <span class="tag">&lt;/Border&gt;</span>
+  <span class="cmt">&lt;!-- Use DataTriggers on Variant DP to set Background, BorderBrush, Foreground --&gt;</span>
+<span class="tag">&lt;/UserControl&gt;</span>
+</pre>
+
+    <h3>5.3 Log Console</h3>
+<pre>
+<span class="cmt">&lt;!-- Use ItemsControl with VirtualizingStackPanel for performance --&gt;</span>
+<span class="tag">&lt;Border</span> <span class="attr">Background</span>=<span class="str">"#0B1522"</span> <span class="attr">CornerRadius</span>=<span class="str">"12"</span> <span class="attr">BorderBrush</span>=<span class="str">"#1D3555"</span> <span class="attr">BorderThickness</span>=<span class="str">"1"</span> <span class="attr">Padding</span>=<span class="str">"10"</span><span class="tag">&gt;</span>
+  <span class="tag">&lt;ItemsControl</span> <span class="attr">ItemsSource</span>=<span class="str">"{Binding LogEntries}"</span>
+                <span class="attr">VirtualizingPanel.IsVirtualizing</span>=<span class="str">"True"</span><span class="tag">&gt;</span>
+    <span class="tag">&lt;ItemsControl.ItemTemplate&gt;</span>
+      <span class="tag">&lt;DataTemplate&gt;</span>
+        <span class="tag">&lt;TextBlock</span> <span class="attr">Text</span>=<span class="str">"{Binding FormattedLine}"</span>
+                   <span class="attr">Foreground</span>=<span class="str">"{Binding SeverityBrush}"</span>
+                   <span class="attr">FontFamily</span>=<span class="str">"Cascadia Mono"</span>
+                   <span class="attr">FontSize</span>=<span class="str">"12"</span> <span class="tag">/&gt;</span>
+      <span class="tag">&lt;/DataTemplate&gt;</span>
+    <span class="tag">&lt;/ItemsControl.ItemTemplate&gt;</span>
+  <span class="tag">&lt;/ItemsControl&gt;</span>
+<span class="tag">&lt;/Border&gt;</span>
+</pre>
+  </section>
+
+  <!-- ═══════════════ IPC INTEGRATION ═══════════════ -->
+  <section class="section">
+    <h2>6. IPC Integration (Named Pipes + StreamJsonRpc)</h2>
+<pre>
+<span class="cmt">// IpcClient.cs — connects to Windows Service</span>
+<span class="kw">public class</span> IpcClient : IAsyncDisposable
+{
+    <span class="kw">private</span> NamedPipeClientStream _pipe;
+    <span class="kw">private</span> JsonRpc _rpc;
+
+    <span class="kw">public async</span> Task ConnectAsync(<span class="kw">string</span> pipeName = <span class="str">"SQLExtractorIPC"</span>)
+    {
+        _pipe = <span class="kw">new</span> NamedPipeClientStream(<span class="str">"."</span>, pipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
+        <span class="kw">await</span> _pipe.ConnectAsync(timeout: 5000);
+        _rpc = JsonRpc.Attach(_pipe);
+
+        <span class="cmt">// Subscribe to log stream</span>
+        _rpc.AddLocalRpcMethod(<span class="str">"onLogEntry"</span>, <span class="kw">new</span> Action&lt;LogEntry&gt;(OnLogReceived));
+    }
+
+    <span class="kw">public async</span> Task&lt;ServiceStatus&gt; GetStatusAsync()
+        => <span class="kw">await</span> _rpc.InvokeAsync&lt;ServiceStatus&gt;(<span class="str">"getStatus"</span>);
+
+    <span class="kw">public async</span> Task TriggerRunAsync()
+        => <span class="kw">await</span> _rpc.InvokeAsync(<span class="str">"triggerRun"</span>);
+
+    <span class="kw">public async</span> Task SubscribeLogsAsync()
+        => <span class="kw">await</span> _rpc.InvokeAsync(<span class="str">"subscribeLogs"</span>);
+
+    <span class="kw">public event</span> Action&lt;LogEntry&gt; LogReceived;
+    <span class="kw">private void</span> OnLogReceived(LogEntry entry)
+        => LogReceived?.Invoke(entry);
+}
+</pre>
+  </section>
+
+  <!-- ═══════════════ NUGET PACKAGES ═══════════════ -->
+  <section class="section">
+    <h2>7. Recommended NuGet Packages</h2>
+    <table class="token-table">
+      <thead><tr><th>Package</th><th>Purpose</th></tr></thead>
+      <tbody>
+        <tr><td><code>CommunityToolkit.Mvvm</code></td><td>MVVM: ObservableObject, RelayCommand, source generators</td></tr>
+        <tr><td><code>StreamJsonRpc</code></td><td>JSON-RPC over Named Pipes (IPC with service)</td></tr>
+        <tr><td><code>Microsoft.Extensions.Hosting</code></td><td>Dependency injection, hosted services in WPF</td></tr>
+        <tr><td><code>Serilog.Sinks.File</code></td><td>Structured logging (matches service log format)</td></tr>
+        <tr><td><code>WPF-UI</code> (optional)</td><td>Fluent Design components for WPF (if you want ready-made modern controls)</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ═══════════════ ACCESSIBILITY ═══════════════ -->
+  <section class="section">
+    <h2>8. Accessibility Notes</h2>
+    <table class="token-table">
+      <thead><tr><th>Aspect</th><th>Guideline</th></tr></thead>
+      <tbody>
+        <tr><td>Color contrast</td><td>All text meets WCAG AA (4.5:1 for normal text). Primary on white = 4.6:1 OK.</td></tr>
+        <tr><td>Focus indicators</td><td>Use focus ring (3px blue glow) on all interactive controls</td></tr>
+        <tr><td>Screen reader</td><td>Set <code>AutomationProperties.Name</code> on all buttons, tags, status indicators</td></tr>
+        <tr><td>Keyboard nav</td><td>Tab order through all controls. Escape closes dialogs. Enter activates primary button.</td></tr>
+        <tr><td>High contrast</td><td>Test with Windows High Contrast mode. Use SystemColors fallback.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+</div>
+</body>
+</html>

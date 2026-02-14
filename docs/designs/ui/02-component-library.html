@@ -1,0 +1,584 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SQL Extractor — Component Library</title>
+  <style>
+    :root {
+      --bg-0:#eef3f8;--bg-1:#f7f9fc;--panel:#ffffff;--panel-soft:#f2f5fa;
+      --line:#d9e2ef;--line-light:#e5ecf6;--text:#0e1a2b;--muted:#4f607a;--subtle:#5a6b84;
+      --nav-bg:#0d1b2a;--nav-item-bg:#0f2035;--nav-item-border:#1f3656;
+      --nav-item-active-border:#2f5b95;--nav-text:#bdd0ea;--nav-text-active:#fff;
+      --primary:#1f6fe5;--primary-2:#2e82ff;--primary-border:#1d62c4;
+      --good:#16a34a;--warn:#d97706;--bad:#dc2626;--info:#1e40af;
+      --r-sm:6px;--r-md:10px;--r-lg:14px;--r-xl:18px;--r-pill:999px;
+      --shadow-md:0 10px 20px rgba(13,27,42,0.04);
+      --font:"Segoe UI Variable","IBM Plex Sans","Segoe UI",sans-serif;
+      --font-mono:"Cascadia Mono","Consolas",monospace;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:var(--font);color:var(--text);background:var(--bg-0);padding:32px;line-height:1.5}
+    .spec{max-width:1100px;margin:0 auto}
+    .spec-header{text-align:center;padding:48px 0 32px;border-bottom:2px solid var(--line);margin-bottom:48px}
+    .spec-header h1{font-size:36px;font-weight:800;letter-spacing:-0.5px}
+    .spec-header p{color:var(--muted);font-size:16px;margin-top:8px}
+    .section{margin-bottom:56px}
+    .section h2{font-size:24px;font-weight:760;letter-spacing:-0.3px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+    .section>p{color:var(--muted);font-size:14px;margin-bottom:24px}
+    .section h3{font-size:16px;font-weight:700;margin:24px 0 12px}
+    .comp-row{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding:16px;background:#fff;border:1px solid var(--line);border-radius:var(--r-lg);margin-bottom:12px}
+    .comp-row.dark{background:var(--nav-bg);border-color:#1c3350}
+    .comp-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--subtle);min-width:120px}
+    .comp-row.dark .comp-label{color:#7a96b8}
+    .token-table{width:100%;border-collapse:collapse;font-size:13px}
+    .token-table th{text-align:left;padding:10px 8px;border-bottom:2px solid var(--line);font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--subtle)}
+    .token-table td{padding:10px 8px;border-bottom:1px solid var(--line-light);vertical-align:top}
+    .token-table code{font-family:var(--font-mono);font-size:12px;color:var(--primary)}
+
+    /* === LIVE COMPONENTS === */
+    .btn{border-radius:var(--r-md);border:1px solid var(--line);background:white;color:var(--text);padding:8px 12px;font-size:13px;font-weight:600;cursor:default;font-family:var(--font);display:inline-flex;align-items:center;gap:6px}
+    .btn.primary{background:linear-gradient(180deg,var(--primary-2),var(--primary));color:#fff;border-color:var(--primary-border)}
+    .btn.danger{background:linear-gradient(180deg,#ef4444,#dc2626);color:#fff;border-color:#b91c1c}
+    .btn.ghost{background:transparent;border-color:transparent;color:var(--primary)}
+    .btn.sm{padding:5px 8px;font-size:12px;border-radius:var(--r-sm)}
+    .btn.lg{padding:10px 16px;font-size:14px}
+    .btn:disabled,.btn.disabled{opacity:0.45;cursor:not-allowed}
+
+    .chip{display:inline-flex;align-items:center;gap:7px;border-radius:var(--r-pill);border:1px solid var(--line);background:#fff;padding:6px 10px;font-size:12px;color:var(--muted);white-space:nowrap}
+    .dot{width:8px;height:8px;border-radius:var(--r-pill);display:inline-block}
+    .dot.good{background:var(--good);box-shadow:0 0 0 3px rgba(22,163,74,0.15)}
+    .dot.warn{background:var(--warn);box-shadow:0 0 0 3px rgba(217,119,6,0.15)}
+    .dot.bad{background:var(--bad);box-shadow:0 0 0 3px rgba(220,38,38,0.15)}
+
+    .tag{display:inline-flex;align-items:center;border-radius:var(--r-pill);font-size:11px;padding:4px 8px;border:1px solid;font-weight:700}
+    .tag.ok{color:#166534;border-color:#a7f3d0;background:#ecfdf5}
+    .tag.fail{color:#991b1b;border-color:#fecaca;background:#fef2f2}
+    .tag.run{color:#1e40af;border-color:#bfdbfe;background:#eff6ff}
+    .tag.warn-tag{color:#92400e;border-color:#fde68a;background:#fffbeb}
+    .tag.snap{color:#6b21a8;border-color:#d8b4fe;background:#faf5ff}
+
+    .input{border:1px solid var(--line);border-radius:var(--r-md);padding:8px 12px;font-size:13px;font-family:var(--font);color:var(--text);background:#fff;min-width:200px;outline:none}
+    .input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(31,111,229,0.12)}
+    .input.error{border-color:var(--bad);box-shadow:0 0 0 3px rgba(220,38,38,0.1)}
+    .input.disabled{background:var(--panel-soft);color:var(--muted);cursor:not-allowed}
+
+    .select{border:1px solid var(--line);border-radius:var(--r-md);padding:8px 12px;font-size:13px;font-family:var(--font);color:var(--text);background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 5l3 3 3-3' stroke='%234f607a' fill='none' stroke-width='1.5'/%3E%3C/svg%3E") no-repeat right 10px center;appearance:none;padding-right:30px;min-width:160px}
+
+    .checkbox-row{display:flex;align-items:center;gap:8px;font-size:13px}
+    .checkbox{width:18px;height:18px;border:2px solid var(--line);border-radius:4px;background:#fff;display:inline-flex;align-items:center;justify-content:center}
+    .checkbox.checked{background:var(--primary);border-color:var(--primary)}
+    .checkbox.checked::after{content:"✓";color:#fff;font-size:12px;font-weight:700}
+
+    .radio-row{display:flex;align-items:center;gap:8px;font-size:13px}
+    .radio{width:18px;height:18px;border:2px solid var(--line);border-radius:50%;background:#fff;display:inline-flex;align-items:center;justify-content:center}
+    .radio.selected{border-color:var(--primary)}
+    .radio.selected::after{content:"";width:10px;height:10px;border-radius:50%;background:var(--primary)}
+
+    .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-lg);padding:14px;box-shadow:var(--shadow-md)}
+    .card .label{font-size:12px;color:var(--muted)}
+    .card .value{font-size:24px;font-weight:760;letter-spacing:-0.3px;margin-top:8px}
+
+    .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-lg);padding:16px}
+    .panel h3{margin:0 0 10px;font-size:16px}
+
+    .bar-track{height:8px;border-radius:var(--r-pill);background:#e6edf7;overflow:hidden;flex:1}
+    .bar-fill{height:100%;border-radius:var(--r-pill);background:linear-gradient(90deg,#2e82ff,#1f6fe5)}
+    .progress-row{display:grid;grid-template-columns:130px 1fr auto;align-items:center;gap:10px;padding:8px 0;font-size:13px}
+
+    .nav-item{border:1px solid var(--nav-item-border);border-radius:var(--r-md);padding:10px 12px;font-size:13px;color:var(--nav-text);background:var(--nav-item-bg);display:inline-block}
+    .nav-item.active{color:var(--nav-text-active);border-color:var(--nav-item-active-border);background:linear-gradient(180deg,#1d3f67,#183554);box-shadow:inset 0 0 0 1px rgba(95,150,230,0.25)}
+
+    .logs-box{background:#0b1522;color:#d9e7ff;border-radius:12px;border:1px solid #1d3555;padding:10px;font-family:var(--font-mono);font-size:12px;line-height:1.5;min-height:80px}
+    .logs-box .err{color:#fca5a5}
+    .logs-box .ok{color:#86efac}
+    .logs-box .wrn{color:#fde68a}
+
+    .stepper{display:flex;align-items:center;gap:0}
+    .step{display:flex;align-items:center;gap:8px}
+    .step-circle{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;border:2px solid var(--line);color:var(--muted);background:#fff}
+    .step-circle.active{background:var(--primary);border-color:var(--primary);color:#fff}
+    .step-circle.done{background:#ecfdf5;border-color:#a7f3d0;color:#166534}
+    .step-label{font-size:12px;color:var(--muted)}
+    .step-label.active{color:var(--text);font-weight:600}
+    .step-line{width:32px;height:2px;background:var(--line);margin:0 4px}
+    .step-line.done{background:var(--good)}
+
+    .tooltip-box{position:relative;display:inline-block}
+    .tooltip{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:var(--nav-bg);color:#fff;padding:6px 10px;border-radius:var(--r-sm);font-size:12px;white-space:nowrap}
+    .tooltip::after{content:"";position:absolute;top:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:var(--nav-bg)}
+
+    .alert{padding:12px 16px;border-radius:var(--r-md);font-size:13px;display:flex;align-items:flex-start;gap:10px}
+    .alert.alert-info{background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af}
+    .alert.alert-warn{background:#fffbeb;border:1px solid #fde68a;color:#92400e}
+    .alert.alert-error{background:#fef2f2;border:1px solid #fecaca;color:#991b1b}
+    .alert.alert-success{background:#ecfdf5;border:1px solid #a7f3d0;color:#166534}
+    .alert-icon{font-size:16px;flex-shrink:0}
+  </style>
+</head>
+<body>
+<div class="spec">
+
+  <header class="spec-header">
+    <h1>Component Library</h1>
+    <p>SQL Server Data Extractor — All UI components with states and specs</p>
+  </header>
+
+  <!-- ═══════════════ BUTTONS ═══════════════ -->
+  <section class="section">
+    <h2>1. Buttons</h2>
+    <p>Figma: create as component set with variant properties: Style (default/primary/danger/ghost), Size (sm/md/lg), State (default/hover/disabled).</p>
+
+    <h3>1.1 Variants</h3>
+    <div class="comp-row">
+      <span class="comp-label">Default</span>
+      <button class="btn">Back</button>
+      <button class="btn">Open Logs</button>
+      <button class="btn">Diagnostics</button>
+    </div>
+    <div class="comp-row">
+      <span class="comp-label">Primary</span>
+      <button class="btn primary">Run Now</button>
+      <button class="btn primary">Next</button>
+      <button class="btn primary">Apply</button>
+    </div>
+    <div class="comp-row">
+      <span class="comp-label">Danger</span>
+      <button class="btn danger">Abort Run</button>
+      <button class="btn danger">Remove Table</button>
+    </div>
+    <div class="comp-row">
+      <span class="comp-label">Ghost</span>
+      <button class="btn ghost">How to fix</button>
+      <button class="btn ghost">Copy</button>
+    </div>
+    <div class="comp-row">
+      <span class="comp-label">Small</span>
+      <button class="btn sm">Select all</button>
+      <button class="btn sm">Clear</button>
+      <button class="btn primary sm">Search</button>
+    </div>
+    <div class="comp-row">
+      <span class="comp-label">Disabled</span>
+      <button class="btn disabled">Next</button>
+      <button class="btn primary disabled">Apply</button>
+    </div>
+
+    <h3>1.2 Spec</h3>
+    <table class="token-table">
+      <thead><tr><th>Property</th><th>Default</th><th>Primary</th><th>Danger</th><th>Ghost</th></tr></thead>
+      <tbody>
+        <tr><td>Background</td><td><code>#FFFFFF</code></td><td><code>gradient #2E82FF→#1F6FE5</code></td><td><code>gradient #EF4444→#DC2626</code></td><td><code>transparent</code></td></tr>
+        <tr><td>Border</td><td><code>#D9E2EF</code></td><td><code>#1D62C4</code></td><td><code>#B91C1C</code></td><td><code>none</code></td></tr>
+        <tr><td>Text color</td><td><code>#0E1A2B</code></td><td><code>#FFFFFF</code></td><td><code>#FFFFFF</code></td><td><code>#1F6FE5</code></td></tr>
+        <tr><td>Padding</td><td colspan="4"><code>8px 12px</code> (md) · <code>5px 8px</code> (sm) · <code>10px 16px</code> (lg)</td></tr>
+        <tr><td>Border radius</td><td colspan="4"><code>10px</code></td></tr>
+        <tr><td>Font</td><td colspan="4"><code>13px / 600 weight</code></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ═══════════════ CHIPS & STATUS DOTS ═══════════════ -->
+  <section class="section">
+    <h2>2. Status Chips &amp; Dots</h2>
+    <p>Used in top bar for real-time service status. Dot + label inside pill-shaped container.</p>
+
+    <div class="comp-row">
+      <span class="comp-label">Chips</span>
+      <span class="chip"><span class="dot good"></span>Service: Running</span>
+      <span class="chip"><span class="dot good"></span>IPC Connected</span>
+      <span class="chip"><span class="dot good"></span>SQL: Online</span>
+      <span class="chip"><span class="dot warn"></span>Next run: 12:00</span>
+      <span class="chip"><span class="dot bad"></span>SQL: Offline</span>
+    </div>
+
+    <h3>Spec</h3>
+    <table class="token-table">
+      <thead><tr><th>Property</th><th>Value</th></tr></thead>
+      <tbody>
+        <tr><td>Container</td><td><code>pill (999px radius), border #D9E2EF, bg #FFF, padding 6px 10px</code></td></tr>
+        <tr><td>Dot size</td><td><code>8×8px</code>, circle</td></tr>
+        <tr><td>Dot glow</td><td><code>box-shadow 0 0 0 3px</code> with 15% opacity of dot color</td></tr>
+        <tr><td>Text</td><td><code>12px, color #4F607A</code></td></tr>
+        <tr><td>Gap (dot↔text)</td><td><code>7px</code></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ═══════════════ TAGS / BADGES ═══════════════ -->
+  <section class="section">
+    <h2>3. Tags / Badges</h2>
+    <p>Used in tables for status indication. Pill-shaped, border + background + text color.</p>
+
+    <div class="comp-row">
+      <span class="comp-label">Status tags</span>
+      <span class="tag ok">SUCCEEDED</span>
+      <span class="tag fail">FAILED</span>
+      <span class="tag run">RUNNING</span>
+      <span class="tag warn-tag">ABORTED</span>
+      <span class="tag snap">SNAPSHOT</span>
+    </div>
+    <div class="comp-row">
+      <span class="comp-label">Diagnostics</span>
+      <span class="tag ok">OK</span>
+      <span class="tag ok">RUNNING</span>
+      <span class="tag run">7 days</span>
+      <span class="tag fail">NOT RUNNING</span>
+      <span class="tag fail">MISSING</span>
+    </div>
+    <div class="comp-row">
+      <span class="comp-label">Table mode</span>
+      <span class="tag run">CDC</span>
+      <span class="tag warn-tag">SNAP</span>
+      <span class="tag fail">BLOCKED</span>
+    </div>
+
+    <h3>Spec</h3>
+    <table class="token-table">
+      <thead><tr><th>Variant</th><th>Background</th><th>Border</th><th>Text</th></tr></thead>
+      <tbody>
+        <tr><td>OK / Success</td><td><code>#ECFDF5</code></td><td><code>#A7F3D0</code></td><td><code>#166534</code></td></tr>
+        <tr><td>Fail / Error</td><td><code>#FEF2F2</code></td><td><code>#FECACA</code></td><td><code>#991B1B</code></td></tr>
+        <tr><td>Running / Info</td><td><code>#EFF6FF</code></td><td><code>#BFDBFE</code></td><td><code>#1E40AF</code></td></tr>
+        <tr><td>Warning / Abort</td><td><code>#FFFBEB</code></td><td><code>#FDE68A</code></td><td><code>#92400E</code></td></tr>
+        <tr><td>Snapshot / Special</td><td><code>#FAF5FF</code></td><td><code>#D8B4FE</code></td><td><code>#6B21A8</code></td></tr>
+      </tbody>
+    </table>
+    <table class="token-table" style="margin-top:12px">
+      <thead><tr><th>Property</th><th>Value</th></tr></thead>
+      <tbody>
+        <tr><td>Padding</td><td><code>4px 8px</code></td></tr>
+        <tr><td>Font</td><td><code>11px / 700 weight</code></td></tr>
+        <tr><td>Border radius</td><td><code>999px (pill)</code></td></tr>
+        <tr><td>Border width</td><td><code>1px</code></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ═══════════════ FORM INPUTS ═══════════════ -->
+  <section class="section">
+    <h2>4. Form Controls</h2>
+    <p>Used in Configurator wizard. Figma: component set with State (default/focus/error/disabled).</p>
+
+    <h3>4.1 Text Input</h3>
+    <div class="comp-row">
+      <span class="comp-label">Default</span>
+      <input class="input" value="localhost" readonly />
+    </div>
+    <div class="comp-row">
+      <span class="comp-label">Focus</span>
+      <input class="input" value="SQLSERVER01" style="border-color:#1f6fe5;box-shadow:0 0 0 3px rgba(31,111,229,0.12)" readonly />
+    </div>
+    <div class="comp-row">
+      <span class="comp-label">Error</span>
+      <input class="input error" value="invalid-host!" readonly />
+    </div>
+    <div class="comp-row">
+      <span class="comp-label">Disabled</span>
+      <input class="input disabled" value="N/A" readonly />
+    </div>
+    <div class="comp-row">
+      <span class="comp-label">Password</span>
+      <input class="input" type="password" value="secretpass" readonly />
+    </div>
+
+    <h3>4.2 Dropdown / Select</h3>
+    <div class="comp-row">
+      <span class="comp-label">Select</span>
+      <select class="select"><option>Windows / AD</option><option>SQL Login</option></select>
+    </div>
+
+    <h3>4.3 Checkbox &amp; Radio</h3>
+    <div class="comp-row">
+      <span class="comp-label">Checkbox</span>
+      <span class="checkbox-row"><span class="checkbox checked"></span> Auto-enable CDC on database</span>
+      <span class="checkbox-row"><span class="checkbox"></span> Encrypt (TLS)</span>
+    </div>
+    <div class="comp-row">
+      <span class="comp-label">Radio</span>
+      <span class="radio-row"><span class="radio selected"></span> Windows / AD</span>
+      <span class="radio-row"><span class="radio"></span> SQL Login</span>
+    </div>
+
+    <h3>4.4 Input Spec</h3>
+    <table class="token-table">
+      <thead><tr><th>Property</th><th>Value</th></tr></thead>
+      <tbody>
+        <tr><td>Height</td><td><code>36px</code> (content + padding)</td></tr>
+        <tr><td>Padding</td><td><code>8px 12px</code></td></tr>
+        <tr><td>Border</td><td><code>1px solid #D9E2EF</code></td></tr>
+        <tr><td>Border radius</td><td><code>10px</code></td></tr>
+        <tr><td>Font</td><td><code>13px / 400 weight</code></td></tr>
+        <tr><td>Focus ring</td><td><code>border #1F6FE5 + box-shadow 0 0 0 3px rgba(31,111,229,0.12)</code></td></tr>
+        <tr><td>Error ring</td><td><code>border #DC2626 + box-shadow 0 0 0 3px rgba(220,38,38,0.1)</code></td></tr>
+        <tr><td>Checkbox size</td><td><code>18×18px</code>, radius 4px, border 2px</td></tr>
+        <tr><td>Radio size</td><td><code>18×18px</code>, circle, inner dot 10px</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ═══════════════ STAT CARDS ═══════════════ -->
+  <section class="section">
+    <h2>5. Stat Cards</h2>
+    <p>Summary metrics on Dashboard. 4-column grid.</p>
+
+    <div class="comp-row" style="gap:16px">
+      <div class="card" style="min-width:160px">
+        <p class="label">Service Status</p>
+        <p class="value">Running</p>
+      </div>
+      <div class="card" style="min-width:160px">
+        <p class="label">Last Run</p>
+        <p class="value" style="color:var(--good)">08:00 &bull; OK</p>
+      </div>
+      <div class="card" style="min-width:160px">
+        <p class="label">Duration</p>
+        <p class="value">07m 12s</p>
+      </div>
+      <div class="card" style="min-width:160px">
+        <p class="label">CDC Lag</p>
+        <p class="value" style="color:var(--warn)">12,984</p>
+      </div>
+    </div>
+
+    <h3>Spec</h3>
+    <table class="token-table">
+      <thead><tr><th>Property</th><th>Value</th></tr></thead>
+      <tbody>
+        <tr><td>Background</td><td><code>#FFFFFF</code></td></tr>
+        <tr><td>Border</td><td><code>1px solid #D9E2EF</code></td></tr>
+        <tr><td>Border radius</td><td><code>14px</code></td></tr>
+        <tr><td>Padding</td><td><code>14px</code></td></tr>
+        <tr><td>Shadow</td><td><code>shadow-md</code></td></tr>
+        <tr><td>Label</td><td><code>12px / color #4F607A</code></td></tr>
+        <tr><td>Value</td><td><code>24px / 760 weight / letter-spacing -0.3px</code></td></tr>
+        <tr><td>Value-label gap</td><td><code>8px</code></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ═══════════════ PROGRESS BARS ═══════════════ -->
+  <section class="section">
+    <h2>6. Progress Bars</h2>
+    <p>Table-level progress during active batch run.</p>
+
+    <div class="comp-row" style="display:block">
+      <div class="progress-row"><span>dbo.Orders</span><div class="bar-track"><div class="bar-fill" style="width:88%"></div></div><strong>88%</strong></div>
+      <div class="progress-row"><span>dbo.Users</span><div class="bar-track"><div class="bar-fill" style="width:53%"></div></div><strong>53%</strong></div>
+      <div class="progress-row"><span style="color:var(--bad)">dbo.Invoices</span><div class="bar-track"><div class="bar-fill" style="width:12%;background:linear-gradient(90deg,#ef4444,#dc2626)"></div></div><strong style="color:var(--bad)">ERROR</strong></div>
+    </div>
+
+    <h3>Spec</h3>
+    <table class="token-table">
+      <thead><tr><th>Property</th><th>Value</th></tr></thead>
+      <tbody>
+        <tr><td>Track height</td><td><code>8px</code></td></tr>
+        <tr><td>Track bg</td><td><code>#E6EDF7</code></td></tr>
+        <tr><td>Fill gradient</td><td><code>#2E82FF → #1F6FE5</code></td></tr>
+        <tr><td>Error fill</td><td><code>#EF4444 → #DC2626</code></td></tr>
+        <tr><td>Border radius</td><td><code>999px (pill)</code></td></tr>
+        <tr><td>Grid</td><td><code>130px | 1fr | auto</code>, gap 10px</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ═══════════════ NAVIGATION ═══════════════ -->
+  <section class="section">
+    <h2>7. Sidebar Navigation</h2>
+    <p>Dark theme sidebar with nav items. Figma: component with State (default/active/hover).</p>
+
+    <div class="comp-row dark">
+      <span class="comp-label">Nav items</span>
+      <span class="nav-item active">Dashboard</span>
+      <span class="nav-item">Runs</span>
+      <span class="nav-item">Tables</span>
+      <span class="nav-item">Diagnostics</span>
+      <span class="nav-item">Settings</span>
+      <span class="nav-item">Logs</span>
+    </div>
+
+    <h3>Spec</h3>
+    <table class="token-table">
+      <thead><tr><th>Property</th><th>Default</th><th>Active</th></tr></thead>
+      <tbody>
+        <tr><td>Background</td><td><code>#0F2035</code></td><td><code>gradient #1D3F67→#183554</code></td></tr>
+        <tr><td>Border</td><td><code>1px solid #1F3656</code></td><td><code>1px solid #2F5B95</code></td></tr>
+        <tr><td>Text color</td><td><code>#BDD0EA</code></td><td><code>#FFFFFF</code></td></tr>
+        <tr><td>Inset shadow</td><td>—</td><td><code>inset 0 0 0 1px rgba(95,150,230,0.25)</code></td></tr>
+        <tr><td>Padding</td><td colspan="2"><code>10px 12px</code></td></tr>
+        <tr><td>Border radius</td><td colspan="2"><code>10px</code></td></tr>
+        <tr><td>Font</td><td colspan="2"><code>13px</code></td></tr>
+        <tr><td>Item gap</td><td colspan="2"><code>8px</code></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ═══════════════ WIZARD STEPPER ═══════════════ -->
+  <section class="section">
+    <h2>8. Wizard Stepper</h2>
+    <p>Horizontal step indicator for Configurator. 9 steps total.</p>
+
+    <div class="comp-row" style="justify-content:center">
+      <div class="stepper">
+        <div class="step"><span class="step-circle done">1</span><span class="step-label">Connect</span></div>
+        <div class="step-line done"></div>
+        <div class="step"><span class="step-circle done">2</span><span class="step-label">Auth</span></div>
+        <div class="step-line done"></div>
+        <div class="step"><span class="step-circle active">3</span><span class="step-label active">Tables</span></div>
+        <div class="step-line"></div>
+        <div class="step"><span class="step-circle">4</span><span class="step-label">CDC</span></div>
+        <div class="step-line"></div>
+        <div class="step"><span class="step-circle">5</span><span class="step-label">Schedule</span></div>
+        <div class="step-line"></div>
+        <div class="step"><span class="step-circle">6</span><span class="step-label">Review</span></div>
+      </div>
+    </div>
+
+    <h3>Spec</h3>
+    <table class="token-table">
+      <thead><tr><th>Property</th><th>Default</th><th>Active</th><th>Done</th></tr></thead>
+      <tbody>
+        <tr><td>Circle size</td><td colspan="3"><code>28×28px</code></td></tr>
+        <tr><td>Circle bg</td><td><code>#FFF</code></td><td><code>#1F6FE5</code></td><td><code>#ECFDF5</code></td></tr>
+        <tr><td>Circle border</td><td><code>2px #D9E2EF</code></td><td><code>2px #1F6FE5</code></td><td><code>2px #A7F3D0</code></td></tr>
+        <tr><td>Number color</td><td><code>#4F607A</code></td><td><code>#FFF</code></td><td><code>#166534</code></td></tr>
+        <tr><td>Label color</td><td><code>#4F607A</code></td><td><code>#0E1A2B / 600w</code></td><td><code>#4F607A</code></td></tr>
+        <tr><td>Connector</td><td><code>32×2px #D9E2EF</code></td><td>—</td><td><code>#16A34A</code></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ═══════════════ LOG CONSOLE ═══════════════ -->
+  <section class="section">
+    <h2>9. Log Console</h2>
+    <p>Terminal-like log viewer with color-coded severity levels.</p>
+
+    <div class="comp-row" style="display:block">
+      <div class="logs-box">
+        11:02:01  INFO  Starting DELTA batch run_2026_02_11_0800_1a2b<br/>
+        11:02:04  INFO  dbo.Orders from_lsn=0x000...1A to_lsn=0x000...5F<br/>
+        <span class="ok">11:02:07  INFO  Uploaded chunk 3/9 (rows=15,000)</span><br/>
+        <span class="wrn">11:02:09  WARN  Retry(1/3) for downstream timeout</span><br/>
+        <span class="err">11:02:11  ERROR Permission denied on dbo.Secrets</span><br/>
+        <span class="ok">11:02:16  INFO  Retry succeeded. Continuing...</span>
+      </div>
+    </div>
+
+    <h3>Spec</h3>
+    <table class="token-table">
+      <thead><tr><th>Property</th><th>Value</th></tr></thead>
+      <tbody>
+        <tr><td>Background</td><td><code>#0B1522</code></td></tr>
+        <tr><td>Border</td><td><code>1px solid #1D3555</code></td></tr>
+        <tr><td>Border radius</td><td><code>12px</code></td></tr>
+        <tr><td>Padding</td><td><code>10px</code></td></tr>
+        <tr><td>Font</td><td><code>Cascadia Mono, 12px, line-height 1.5</code></td></tr>
+        <tr><td>Default text</td><td><code>#D9E7FF</code></td></tr>
+        <tr><td>INFO / Success</td><td><code>#86EFAC</code></td></tr>
+        <tr><td>WARN</td><td><code>#FDE68A</code></td></tr>
+        <tr><td>ERROR</td><td><code>#FCA5A5</code></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ═══════════════ ALERTS ═══════════════ -->
+  <section class="section">
+    <h2>10. Alert / Inline Messages</h2>
+    <p>Contextual messages for prerequisites, errors, and recommendations.</p>
+
+    <div style="display:grid;gap:12px">
+      <div class="alert alert-info"><span class="alert-icon">ℹ</span><div><strong>Info:</strong> CDC is already enabled on this database. Retention is set to 14 days.</div></div>
+      <div class="alert alert-success"><span class="alert-icon">✓</span><div><strong>Connected:</strong> SQL Server PROD01\MAIN, database OrdersDB — all prerequisites passed.</div></div>
+      <div class="alert alert-warn"><span class="alert-icon">⚠</span><div><strong>Warning:</strong> SQL Agent is not running. CDC cleanup jobs will not execute. <a href="#" style="color:inherit;font-weight:600">How to fix</a></div></div>
+      <div class="alert alert-error"><span class="alert-icon">✕</span><div><strong>Error:</strong> CDC gap detected on dbo.Orders. last_processed_lsn is older than minimum available LSN. Table requires re-bootstrap.</div></div>
+    </div>
+
+    <h3>Spec</h3>
+    <table class="token-table">
+      <thead><tr><th>Variant</th><th>Background</th><th>Border</th><th>Text</th></tr></thead>
+      <tbody>
+        <tr><td>Info</td><td><code>#EFF6FF</code></td><td><code>#BFDBFE</code></td><td><code>#1E40AF</code></td></tr>
+        <tr><td>Success</td><td><code>#ECFDF5</code></td><td><code>#A7F3D0</code></td><td><code>#166534</code></td></tr>
+        <tr><td>Warning</td><td><code>#FFFBEB</code></td><td><code>#FDE68A</code></td><td><code>#92400E</code></td></tr>
+        <tr><td>Error</td><td><code>#FEF2F2</code></td><td><code>#FECACA</code></td><td><code>#991B1B</code></td></tr>
+      </tbody>
+    </table>
+    <table class="token-table" style="margin-top:8px">
+      <thead><tr><th>Property</th><th>Value</th></tr></thead>
+      <tbody>
+        <tr><td>Padding</td><td><code>12px 16px</code></td></tr>
+        <tr><td>Border radius</td><td><code>10px</code></td></tr>
+        <tr><td>Font</td><td><code>13px</code></td></tr>
+        <tr><td>Icon-text gap</td><td><code>10px</code></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ═══════════════ TABLE ═══════════════ -->
+  <section class="section">
+    <h2>11. Data Tables</h2>
+    <p>Used for Runs list, Table list, Diagnostics. Full-width inside panel.</p>
+
+    <div class="panel">
+      <table class="token-table" style="font-size:13px">
+        <thead>
+          <tr>
+            <th style="font-size:12px;text-transform:uppercase;letter-spacing:0.3px;color:#5a6b84">Started</th>
+            <th style="font-size:12px;text-transform:uppercase;letter-spacing:0.3px;color:#5a6b84">Type</th>
+            <th style="font-size:12px;text-transform:uppercase;letter-spacing:0.3px;color:#5a6b84">Status</th>
+            <th style="font-size:12px;text-transform:uppercase;letter-spacing:0.3px;color:#5a6b84">Duration</th>
+            <th style="font-size:12px;text-transform:uppercase;letter-spacing:0.3px;color:#5a6b84">Tables</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>2026-02-11 08:00</td><td>DELTA</td><td><span class="tag ok">SUCCEEDED</span></td><td>00:07:12</td><td>12/12</td></tr>
+          <tr><td>2026-02-10 18:00</td><td>DELTA</td><td><span class="tag fail">FAILED</span></td><td>00:03:20</td><td>2/12</td></tr>
+          <tr><td>2026-02-10 12:00</td><td>SNAPSHOT</td><td><span class="tag ok">SUCCEEDED</span></td><td>01:42:31</td><td>12/12</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Spec</h3>
+    <table class="token-table">
+      <thead><tr><th>Property</th><th>Value</th></tr></thead>
+      <tbody>
+        <tr><td>Header font</td><td><code>12px / 700w / uppercase / letter-spacing 0.3px</code></td></tr>
+        <tr><td>Header color</td><td><code>#5A6B84</code></td></tr>
+        <tr><td>Header border</td><td><code>2px solid #D9E2EF</code> (bottom)</td></tr>
+        <tr><td>Cell font</td><td><code>13px / 400w</code></td></tr>
+        <tr><td>Cell padding</td><td><code>10px 8px</code></td></tr>
+        <tr><td>Row divider</td><td><code>1px solid #E5ECF6</code></td></tr>
+        <tr><td>Row hover</td><td><code>bg #F7F9FC</code> (optional)</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ═══════════════ TOOLTIP ═══════════════ -->
+  <section class="section">
+    <h2>12. Tooltips</h2>
+
+    <div class="comp-row" style="padding-top:40px">
+      <span class="comp-label">Tooltip</span>
+      <span class="tooltip-box">
+        <span class="tooltip">No unique index. Create unique index or reduce to &lt;1000 rows.</span>
+        <span class="tag fail">BLOCKED</span>
+      </span>
+    </div>
+
+    <h3>Spec</h3>
+    <table class="token-table">
+      <thead><tr><th>Property</th><th>Value</th></tr></thead>
+      <tbody>
+        <tr><td>Background</td><td><code>#0D1B2A</code> (nav-bg)</td></tr>
+        <tr><td>Text</td><td><code>#FFF, 12px</code></td></tr>
+        <tr><td>Padding</td><td><code>6px 10px</code></td></tr>
+        <tr><td>Border radius</td><td><code>6px</code></td></tr>
+        <tr><td>Arrow</td><td><code>5px border trick</code></td></tr>
+        <tr><td>Max width</td><td><code>280px</code></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+</div>
+</body>
+</html>

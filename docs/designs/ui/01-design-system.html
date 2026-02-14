@@ -1,0 +1,500 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SQL Extractor — Design System Specification</title>
+  <style>
+    /* ========== DESIGN TOKENS ========== */
+    :root {
+      /* --- Color Palette --- */
+      --bg-0: #eef3f8;
+      --bg-1: #f7f9fc;
+      --panel: #ffffff;
+      --panel-soft: #f2f5fa;
+      --content-bg: linear-gradient(180deg, #f9fbff, #f3f7fc);
+      --line: #d9e2ef;
+      --line-light: #e5ecf6;
+
+      /* Text */
+      --text: #0e1a2b;
+      --muted: #4f607a;
+      --subtle: #5a6b84;
+
+      /* Nav / Sidebar */
+      --nav-bg: #0d1b2a;
+      --nav-bg-end: #08131f;
+      --nav-soft: #13253b;
+      --nav-body: #d7e3f4;
+      --nav-text: #bdd0ea;
+      --nav-text-muted: #94add0;
+      --nav-text-active: #ffffff;
+      --nav-item-bg: #0f2035;
+      --nav-item-border: #1f3656;
+      --nav-item-active-bg: linear-gradient(180deg, #1d3f67, #183554);
+      --nav-item-active-border: #2f5b95;
+      --nav-item-active-inset: rgba(95, 150, 230, 0.25);
+      --nav-product-bg: linear-gradient(180deg, #112642, #102238);
+      --nav-product-border: #2a4465;
+      --nav-foot-text: #a7bddd;
+
+      /* Primary / Accent */
+      --primary: #1f6fe5;
+      --primary-2: #2e82ff;
+      --primary-gradient: linear-gradient(180deg, #2e82ff, #1f6fe5);
+      --primary-border: #1d62c4;
+
+      /* Semantic */
+      --good: #16a34a;
+      --good-glow: rgba(22, 163, 74, 0.15);
+      --warn: #d97706;
+      --warn-glow: rgba(217, 119, 6, 0.15);
+      --bad: #dc2626;
+      --bad-glow: rgba(220, 38, 38, 0.15);
+      --info: #1e40af;
+
+      /* Tag backgrounds */
+      --tag-ok-bg: #ecfdf5;
+      --tag-ok-border: #a7f3d0;
+      --tag-ok-text: #166534;
+      --tag-fail-bg: #fef2f2;
+      --tag-fail-border: #fecaca;
+      --tag-fail-text: #991b1b;
+      --tag-run-bg: #eff6ff;
+      --tag-run-border: #bfdbfe;
+      --tag-run-text: #1e40af;
+      --tag-warn-bg: #fffbeb;
+      --tag-warn-border: #fde68a;
+      --tag-warn-text: #92400e;
+      --tag-snap-bg: #faf5ff;
+      --tag-snap-border: #d8b4fe;
+      --tag-snap-text: #6b21a8;
+
+      /* Logs terminal */
+      --log-bg: #0b1522;
+      --log-text: #d9e7ff;
+      --log-border: #1d3555;
+      --log-ok: #86efac;
+      --log-err: #fca5a5;
+      --log-warn: #fde68a;
+
+      /* Progress bar */
+      --bar-track: #e6edf7;
+      --bar-fill: linear-gradient(90deg, #2e82ff, #1f6fe5);
+
+      /* --- Spacing Scale (px) --- */
+      --sp-2: 2px;
+      --sp-4: 4px;
+      --sp-6: 6px;
+      --sp-8: 8px;
+      --sp-10: 10px;
+      --sp-12: 12px;
+      --sp-14: 14px;
+      --sp-16: 16px;
+      --sp-18: 18px;
+      --sp-20: 20px;
+      --sp-24: 24px;
+      --sp-32: 32px;
+      --sp-48: 48px;
+
+      /* --- Border Radius --- */
+      --r-sm: 6px;
+      --r-md: 10px;
+      --r-lg: 14px;
+      --r-xl: 18px;
+      --r-pill: 999px;
+
+      /* --- Shadows --- */
+      --shadow-sm: 0 4px 12px rgba(13, 27, 42, 0.04);
+      --shadow-md: 0 10px 20px rgba(13, 27, 42, 0.04);
+      --shadow-lg: 0 16px 36px rgba(13, 27, 42, 0.08);
+
+      /* --- Typography --- */
+      --font: "Segoe UI Variable", "IBM Plex Sans", "Segoe UI", sans-serif;
+      --font-mono: "Cascadia Mono", "Consolas", monospace;
+
+      /* --- Layout --- */
+      --sidebar-w: 270px;
+      --topbar-h: 50px;
+      --window-max-w: 1500px;
+    }
+
+    /* ========== RESET ========== */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font);
+      color: var(--text);
+      background: var(--bg-0);
+      line-height: 1.5;
+      padding: 32px;
+    }
+
+    /* ========== SPEC LAYOUT ========== */
+    .spec { max-width: 1100px; margin: 0 auto; }
+
+    .spec-header {
+      text-align: center;
+      padding: 48px 0 32px;
+      border-bottom: 2px solid var(--line);
+      margin-bottom: 48px;
+    }
+    .spec-header h1 { font-size: 36px; font-weight: 800; letter-spacing: -0.5px; }
+    .spec-header p { color: var(--muted); font-size: 16px; margin-top: 8px; }
+
+    .section { margin-bottom: 56px; }
+    .section h2 {
+      font-size: 24px;
+      font-weight: 760;
+      letter-spacing: -0.3px;
+      margin-bottom: 8px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--line);
+    }
+    .section > p { color: var(--muted); font-size: 14px; margin-bottom: 24px; }
+    .section h3 { font-size: 16px; font-weight: 700; margin: 24px 0 12px; }
+
+    /* ========== COLOR SWATCHES ========== */
+    .swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+    .swatch {
+      border: 1px solid var(--line);
+      border-radius: var(--r-md);
+      overflow: hidden;
+      background: #fff;
+    }
+    .swatch-color { height: 56px; }
+    .swatch-info { padding: 10px; font-size: 12px; }
+    .swatch-info strong { display: block; font-size: 13px; margin-bottom: 2px; }
+    .swatch-info code { color: var(--muted); font-family: var(--font-mono); font-size: 11px; }
+
+    /* ========== TYPE SCALE ========== */
+    .type-row {
+      display: grid;
+      grid-template-columns: 180px 1fr;
+      align-items: baseline;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--line-light);
+    }
+    .type-label { font-size: 12px; color: var(--muted); font-family: var(--font-mono); }
+    .type-sample { color: var(--text); }
+
+    /* ========== SPACING ========== */
+    .spacing-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 8px 0;
+    }
+    .spacing-bar {
+      height: 20px;
+      background: var(--primary);
+      border-radius: 4px;
+      opacity: 0.25;
+    }
+    .spacing-label { font-size: 12px; font-family: var(--font-mono); color: var(--muted); min-width: 80px; }
+
+    /* ========== TOKEN TABLE ========== */
+    .token-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .token-table th {
+      text-align: left;
+      padding: 10px 8px;
+      border-bottom: 2px solid var(--line);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--subtle);
+    }
+    .token-table td {
+      padding: 10px 8px;
+      border-bottom: 1px solid var(--line-light);
+      vertical-align: top;
+    }
+    .token-table code { font-family: var(--font-mono); font-size: 12px; color: var(--primary); }
+
+    /* ========== GRID SPEC ========== */
+    .grid-demo {
+      border: 2px dashed var(--line);
+      border-radius: var(--r-lg);
+      padding: 16px;
+      background: var(--panel-soft);
+    }
+    .grid-demo-row {
+      display: grid;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .grid-demo-cell {
+      background: rgba(31, 111, 229, 0.08);
+      border: 1px dashed rgba(31, 111, 229, 0.3);
+      border-radius: var(--r-sm);
+      padding: 12px;
+      text-align: center;
+      font-size: 12px;
+      color: var(--primary);
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+<div class="spec">
+
+  <header class="spec-header">
+    <h1>SQL Server Data Extractor</h1>
+    <p>Design System Specification v1.0 — Figma-Ready Reference</p>
+    <p style="font-size:13px;color:#4f607a;margin-top:4px;">Target: .NET WPF (Windows Presentation Foundation) &bull; Windows 10/11 &bull; Segoe UI Variable</p>
+  </header>
+
+  <!-- ═══════════════════ SECTION 1: COLORS ═══════════════════ -->
+  <section class="section">
+    <h2>1. Color Palette</h2>
+    <p>All colors defined as CSS custom properties. Map directly to Figma color styles and WPF SolidColorBrush resources.</p>
+
+    <h3>1.1 Background &amp; Surface</h3>
+    <div class="swatches">
+      <div class="swatch"><div class="swatch-color" style="background:#eef3f8"></div><div class="swatch-info"><strong>bg-0</strong><code>#EEF3F8</code><br/>App background</div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#f7f9fc"></div><div class="swatch-info"><strong>bg-1</strong><code>#F7F9FC</code><br/>Content area bg</div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#ffffff"></div><div class="swatch-info"><strong>panel</strong><code>#FFFFFF</code><br/>Cards, panels</div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#f2f5fa"></div><div class="swatch-info"><strong>panel-soft</strong><code>#F2F5FA</code><br/>Subtle panel fill</div></div>
+    </div>
+
+    <h3>1.2 Text</h3>
+    <div class="swatches">
+      <div class="swatch"><div class="swatch-color" style="background:#0e1a2b"></div><div class="swatch-info"><strong>text</strong><code>#0E1A2B</code><br/>Primary text</div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#4f607a"></div><div class="swatch-info"><strong>muted</strong><code>#4F607A</code><br/>Secondary text</div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#5a6b84"></div><div class="swatch-info"><strong>subtle</strong><code>#5A6B84</code><br/>Table headers</div></div>
+    </div>
+
+    <h3>1.3 Borders &amp; Lines</h3>
+    <div class="swatches">
+      <div class="swatch"><div class="swatch-color" style="background:#d9e2ef"></div><div class="swatch-info"><strong>line</strong><code>#D9E2EF</code><br/>Borders, dividers</div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#e5ecf6"></div><div class="swatch-info"><strong>line-light</strong><code>#E5ECF6</code><br/>Table row dividers</div></div>
+    </div>
+
+    <h3>1.4 Primary / Brand</h3>
+    <div class="swatches">
+      <div class="swatch"><div class="swatch-color" style="background:#1f6fe5"></div><div class="swatch-info"><strong>primary</strong><code>#1F6FE5</code><br/>Primary actions</div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#2e82ff"></div><div class="swatch-info"><strong>primary-2</strong><code>#2E82FF</code><br/>Gradient top</div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#1d62c4"></div><div class="swatch-info"><strong>primary-border</strong><code>#1D62C4</code><br/>Button border</div></div>
+    </div>
+
+    <h3>1.5 Semantic</h3>
+    <div class="swatches">
+      <div class="swatch"><div class="swatch-color" style="background:#16a34a"></div><div class="swatch-info"><strong>good</strong><code>#16A34A</code><br/>Success, connected</div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#d97706"></div><div class="swatch-info"><strong>warn</strong><code>#D97706</code><br/>Warning, pending</div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#dc2626"></div><div class="swatch-info"><strong>bad</strong><code>#DC2626</code><br/>Error, critical</div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#1e40af"></div><div class="swatch-info"><strong>info</strong><code>#1E40AF</code><br/>Informational</div></div>
+    </div>
+
+    <h3>1.6 Navigation / Sidebar</h3>
+    <div class="swatches">
+      <div class="swatch"><div class="swatch-color" style="background:#0d1b2a"></div><div class="swatch-info"><strong>nav-bg</strong><code>#0D1B2A</code><br/>Sidebar top</div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#08131f"></div><div class="swatch-info"><strong>nav-bg-end</strong><code>#08131F</code><br/>Sidebar bottom</div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#bdd0ea"></div><div class="swatch-info"><strong>nav-text</strong><code>#BDD0EA</code><br/>Nav item text</div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#0f2035"></div><div class="swatch-info"><strong>nav-item-bg</strong><code>#0F2035</code><br/>Nav item default</div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#1d3f67"></div><div class="swatch-info"><strong>nav-item-active</strong><code>#1D3F67</code><br/>Nav item active</div></div>
+    </div>
+
+    <h3>1.7 Tags / Badges</h3>
+    <div class="swatches">
+      <div class="swatch"><div class="swatch-color" style="background:#ecfdf5; border-bottom: 3px solid #a7f3d0"></div><div class="swatch-info"><strong>tag-ok</strong><code>bg:#ECFDF5 border:#A7F3D0 text:#166534</code></div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#fef2f2; border-bottom: 3px solid #fecaca"></div><div class="swatch-info"><strong>tag-fail</strong><code>bg:#FEF2F2 border:#FECACA text:#991B1B</code></div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#eff6ff; border-bottom: 3px solid #bfdbfe"></div><div class="swatch-info"><strong>tag-run</strong><code>bg:#EFF6FF border:#BFDBFE text:#1E40AF</code></div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#fffbeb; border-bottom: 3px solid #fde68a"></div><div class="swatch-info"><strong>tag-warn</strong><code>bg:#FFFBEB border:#FDE68A text:#92400E</code></div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#faf5ff; border-bottom: 3px solid #d8b4fe"></div><div class="swatch-info"><strong>tag-snap</strong><code>bg:#FAF5FF border:#D8B4FE text:#6B21A8</code></div></div>
+    </div>
+
+    <h3>1.8 Terminal / Log Console</h3>
+    <div class="swatches">
+      <div class="swatch"><div class="swatch-color" style="background:#0b1522"></div><div class="swatch-info"><strong>log-bg</strong><code>#0B1522</code><br/>Console bg</div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#1d3555"></div><div class="swatch-info"><strong>log-border</strong><code>#1D3555</code><br/>Console border</div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#d9e7ff"></div><div class="swatch-info"><strong>log-text</strong><code>#D9E7FF</code><br/>Log default text</div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#86efac"></div><div class="swatch-info"><strong>log-ok</strong><code>#86EFAC</code><br/>Log success</div></div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════ SECTION 2: TYPOGRAPHY ═══════════════════ -->
+  <section class="section">
+    <h2>2. Typography Scale</h2>
+    <p>Primary font: Segoe UI Variable (Windows system). Fallback: IBM Plex Sans, Segoe UI, sans-serif. Mono: Cascadia Mono, Consolas.</p>
+
+    <div class="type-row">
+      <span class="type-label">h1-page / 28px / 760w</span>
+      <span class="type-sample" style="font-size:28px;font-weight:760;letter-spacing:-0.4px">Management Console Dashboard</span>
+    </div>
+    <div class="type-row">
+      <span class="type-label">h2-section / 24px / 760w</span>
+      <span class="type-sample" style="font-size:24px;font-weight:760;letter-spacing:-0.3px">Recent Runs</span>
+    </div>
+    <div class="type-row">
+      <span class="type-label">h3-panel / 16px / 700w</span>
+      <span class="type-sample" style="font-size:16px;font-weight:700">Current Activity</span>
+    </div>
+    <div class="type-row">
+      <span class="type-label">title-bar / 15px / 700w</span>
+      <span class="type-sample" style="font-size:15px;font-weight:700;letter-spacing:0.2px">SQL Server Data Extractor</span>
+    </div>
+    <div class="type-row">
+      <span class="type-label">nav-product / 14px / 700w</span>
+      <span class="type-sample" style="font-size:14px;font-weight:700">Management Console</span>
+    </div>
+    <div class="type-row">
+      <span class="type-label">body / 14px / 400w</span>
+      <span class="type-sample" style="font-size:14px;font-weight:400">Service health, batch progress, and CDC sync status in one view.</span>
+    </div>
+    <div class="type-row">
+      <span class="type-label">body-sm / 13px / 400w</span>
+      <span class="type-sample" style="font-size:13px;font-weight:400">dbo.Orders from_lsn=0x000...1A to_lsn=0x000...5F</span>
+    </div>
+    <div class="type-row">
+      <span class="type-label">btn-label / 13px / 600w</span>
+      <span class="type-sample" style="font-size:13px;font-weight:600">Run Now</span>
+    </div>
+    <div class="type-row">
+      <span class="type-label">caption / 12px / 400w</span>
+      <span class="type-sample" style="font-size:12px;font-weight:400;color:#4f607a">Service Status</span>
+    </div>
+    <div class="type-row">
+      <span class="type-label">th-header / 12px / 700w / UPPER</span>
+      <span class="type-sample" style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.3px;color:#5a6b84">STARTED · TYPE · STATUS · DURATION</span>
+    </div>
+    <div class="type-row">
+      <span class="type-label">tag / 11px / 700w</span>
+      <span class="type-sample" style="font-size:11px;font-weight:700;color:#166534">SUCCEEDED</span>
+    </div>
+    <div class="type-row">
+      <span class="type-label">stat-value / 24px / 760w</span>
+      <span class="type-sample" style="font-size:24px;font-weight:760;letter-spacing:-0.3px">07m 12s</span>
+    </div>
+    <div class="type-row">
+      <span class="type-label">mono-log / 12px / 400w</span>
+      <span class="type-sample" style="font-size:12px;font-weight:400;font-family:'Cascadia Mono','Consolas',monospace;color:#d9e7ff;background:#0b1522;padding:4px 8px;border-radius:4px">11:02:01 INFO Starting DELTA batch</span>
+    </div>
+  </section>
+
+  <!-- ═══════════════════ SECTION 3: SPACING ═══════════════════ -->
+  <section class="section">
+    <h2>3. Spacing Scale</h2>
+    <p>8px base grid. All spacing values are multiples of 2px for pixel-perfect alignment.</p>
+
+    <div class="spacing-row"><span class="spacing-label">sp-2 = 2px</span><div class="spacing-bar" style="width:2px"></div></div>
+    <div class="spacing-row"><span class="spacing-label">sp-4 = 4px</span><div class="spacing-bar" style="width:4px"></div></div>
+    <div class="spacing-row"><span class="spacing-label">sp-6 = 6px</span><div class="spacing-bar" style="width:6px"></div></div>
+    <div class="spacing-row"><span class="spacing-label">sp-8 = 8px</span><div class="spacing-bar" style="width:8px"></div></div>
+    <div class="spacing-row"><span class="spacing-label">sp-10 = 10px</span><div class="spacing-bar" style="width:10px"></div></div>
+    <div class="spacing-row"><span class="spacing-label">sp-12 = 12px</span><div class="spacing-bar" style="width:12px"></div></div>
+    <div class="spacing-row"><span class="spacing-label">sp-14 = 14px</span><div class="spacing-bar" style="width:14px"></div></div>
+    <div class="spacing-row"><span class="spacing-label">sp-16 = 16px</span><div class="spacing-bar" style="width:16px"></div></div>
+    <div class="spacing-row"><span class="spacing-label">sp-18 = 18px</span><div class="spacing-bar" style="width:18px"></div></div>
+    <div class="spacing-row"><span class="spacing-label">sp-20 = 20px</span><div class="spacing-bar" style="width:20px"></div></div>
+    <div class="spacing-row"><span class="spacing-label">sp-24 = 24px</span><div class="spacing-bar" style="width:24px"></div></div>
+    <div class="spacing-row"><span class="spacing-label">sp-32 = 32px</span><div class="spacing-bar" style="width:32px"></div></div>
+    <div class="spacing-row"><span class="spacing-label">sp-48 = 48px</span><div class="spacing-bar" style="width:48px"></div></div>
+  </section>
+
+  <!-- ═══════════════════ SECTION 4: RADII & SHADOWS ═══════════════════ -->
+  <section class="section">
+    <h2>4. Border Radius &amp; Shadows</h2>
+
+    <h3>4.1 Border Radius</h3>
+    <table class="token-table">
+      <thead><tr><th>Token</th><th>Value</th><th>Usage</th></tr></thead>
+      <tbody>
+        <tr><td><code>r-sm</code></td><td>6px</td><td>Small elements, inner containers</td></tr>
+        <tr><td><code>r-md</code></td><td>10px</td><td>Buttons, nav items, inputs</td></tr>
+        <tr><td><code>r-lg</code></td><td>14px</td><td>Cards, panels, log console</td></tr>
+        <tr><td><code>r-xl</code></td><td>18px</td><td>Main window border</td></tr>
+        <tr><td><code>r-pill</code></td><td>999px</td><td>Chips, tags, dots, progress bars</td></tr>
+      </tbody>
+    </table>
+
+    <h3>4.2 Shadows</h3>
+    <table class="token-table">
+      <thead><tr><th>Token</th><th>Value</th><th>Usage</th></tr></thead>
+      <tbody>
+        <tr><td><code>shadow-sm</code></td><td>0 4px 12px rgba(13,27,42,0.04)</td><td>Subtle hover states</td></tr>
+        <tr><td><code>shadow-md</code></td><td>0 10px 20px rgba(13,27,42,0.04)</td><td>Cards, stat panels</td></tr>
+        <tr><td><code>shadow-lg</code></td><td>0 16px 36px rgba(13,27,42,0.08)</td><td>Main window container</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ═══════════════════ SECTION 5: LAYOUT GRID ═══════════════════ -->
+  <section class="section">
+    <h2>5. Layout Grid</h2>
+    <p>Two-column layout with fixed sidebar. Content area uses flexible grid. Max width 1500px.</p>
+
+    <h3>5.1 App Shell</h3>
+    <table class="token-table">
+      <thead><tr><th>Property</th><th>Value</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td>Window max-width</td><td>1500px</td><td>Centered, border-radius 18px</td></tr>
+        <tr><td>Window min-height</td><td>860px</td><td>Minimum height for layout</td></tr>
+        <tr><td>Top bar height</td><td>~50px</td><td>Padding 12px 18px</td></tr>
+        <tr><td>Sidebar width</td><td>270px</td><td>Fixed, dark theme</td></tr>
+        <tr><td>Content padding</td><td>24px</td><td>All sides</td></tr>
+        <tr><td>Content gap</td><td>18px</td><td>Between sections</td></tr>
+      </tbody>
+    </table>
+
+    <h3>5.2 Grid: Stat Cards</h3>
+    <div class="grid-demo">
+      <div class="grid-demo-row" style="grid-template-columns: repeat(4, 1fr)">
+        <div class="grid-demo-cell">Card 1<br/><small>min 150px</small></div>
+        <div class="grid-demo-cell">Card 2</div>
+        <div class="grid-demo-cell">Card 3</div>
+        <div class="grid-demo-cell">Card 4</div>
+      </div>
+      <p style="font-size:12px;color:var(--muted);margin-top:4px">4 columns, gap 12px. Responsive: collapses to 2 cols at 1180px, 1 col at 900px.</p>
+    </div>
+
+    <h3>5.3 Grid: Split Panels</h3>
+    <div class="grid-demo">
+      <div class="grid-demo-row" style="grid-template-columns: 1.6fr 1fr">
+        <div class="grid-demo-cell">Main Panel (1.6fr)<br/><small>Activity / Table progress</small></div>
+        <div class="grid-demo-cell">Side Panel (1fr)<br/><small>Diagnostics / Summary</small></div>
+      </div>
+      <p style="font-size:12px;color:var(--muted);margin-top:4px">Ratio 1.6 : 1, gap 12px. Stacks at 1180px.</p>
+    </div>
+
+    <h3>5.4 Wizard Layout</h3>
+    <table class="token-table">
+      <thead><tr><th>Property</th><th>Value</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td>Wizard panel max-width</td><td>720px</td><td>Centered within content area</td></tr>
+        <tr><td>Step indicator</td><td>Horizontal stepper</td><td>Numbered circles + labels</td></tr>
+        <tr><td>Form field gap</td><td>16px</td><td>Between form groups</td></tr>
+        <tr><td>Button bar</td><td>Right-aligned</td><td>Back + Next/Finish, 8px gap</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ═══════════════════ SECTION 6: FIGMA STRUCTURE ═══════════════════ -->
+  <section class="section">
+    <h2>6. Figma File Structure (Recommended)</h2>
+    <p>Organize Figma file into these pages for clean handoff.</p>
+
+    <table class="token-table">
+      <thead><tr><th>Page</th><th>Contents</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Cover</strong></td><td>Project name, version, date, links</td></tr>
+        <tr><td><strong>Design Tokens</strong></td><td>Color styles, text styles, effect styles (this document)</td></tr>
+        <tr><td><strong>Components</strong></td><td>All reusable components with variants (see part 2)</td></tr>
+        <tr><td><strong>Wizard Screens</strong></td><td>9 wizard steps, each as a frame 1500x900px</td></tr>
+        <tr><td><strong>Manager Screens</strong></td><td>7 manager views, each as a frame 1500x900px</td></tr>
+        <tr><td><strong>States &amp; Interactions</strong></td><td>Hover, disabled, error states, loading skeletons</td></tr>
+      </tbody>
+    </table>
+
+    <h3>6.1 Figma Color Styles</h3>
+    <p>Create as local styles with naming: <code>Surface/bg-0</code>, <code>Text/primary</code>, <code>Semantic/good</code>, <code>Nav/bg</code>, <code>Tag/ok-bg</code>, etc.</p>
+
+    <h3>6.2 Figma Text Styles</h3>
+    <p>Create text styles matching Section 2: <code>h1-page</code>, <code>h2-section</code>, <code>h3-panel</code>, <code>body</code>, <code>body-sm</code>, <code>btn-label</code>, <code>caption</code>, <code>th-header</code>, <code>tag</code>, <code>stat-value</code>, <code>mono-log</code>.</p>
+
+    <h3>6.3 Figma Effect Styles</h3>
+    <p>Create: <code>shadow-sm</code>, <code>shadow-md</code>, <code>shadow-lg</code> per Section 4.2.</p>
+  </section>
+
+</div>
+</body>
+</html>

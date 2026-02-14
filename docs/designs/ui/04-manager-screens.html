@@ -1,0 +1,693 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SQL Extractor — Manager Screens (All 7)</title>
+  <style>
+    :root {
+      --bg-0:#eef3f8;--bg-1:#f7f9fc;--panel:#ffffff;--panel-soft:#f2f5fa;
+      --line:#d9e2ef;--line-light:#e5ecf6;--text:#0e1a2b;--muted:#4f607a;--subtle:#5a6b84;
+      --nav-bg:#0d1b2a;--nav-bg-end:#08131f;--nav-item-bg:#0f2035;--nav-item-border:#1f3656;
+      --nav-item-active-border:#2f5b95;--nav-text:#bdd0ea;--nav-text-active:#fff;
+      --nav-text-muted:#94add0;--nav-product-border:#2a4465;--nav-foot-text:#a7bddd;
+      --primary:#1f6fe5;--primary-2:#2e82ff;--primary-border:#1d62c4;
+      --good:#16a34a;--warn:#d97706;--bad:#dc2626;--info:#1e40af;
+      --r-sm:6px;--r-md:10px;--r-lg:14px;--r-xl:18px;--r-pill:999px;
+      --shadow-sm:0 4px 12px rgba(13,27,42,0.04);--shadow-md:0 10px 20px rgba(13,27,42,0.04);--shadow-lg:0 16px 36px rgba(13,27,42,0.08);
+      --font:"Segoe UI Variable","IBM Plex Sans","Segoe UI",sans-serif;--font-mono:"Cascadia Mono","Consolas",monospace;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:var(--font);color:var(--text);background:radial-gradient(1600px 800px at 20% -20%,#d7e7ff 0%,transparent 60%),radial-gradient(1000px 700px at 100% 0%,#dcecff 0%,transparent 60%),linear-gradient(180deg,var(--bg-0),var(--bg-1));min-height:100vh;padding:20px}
+    .window{max-width:1500px;margin:0 auto 40px;border:1px solid var(--line);border-radius:18px;overflow:hidden;background:var(--panel);box-shadow:var(--shadow-lg)}
+    .topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#fff,#f8fbff);gap:12px;flex-wrap:wrap}
+    .title{font-weight:700;letter-spacing:0.2px;font-size:15px}
+    .top-groups{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .chip{display:inline-flex;align-items:center;gap:7px;border-radius:var(--r-pill);border:1px solid var(--line);background:#fff;padding:6px 10px;font-size:12px;color:var(--muted);white-space:nowrap}
+    .dot{width:8px;height:8px;border-radius:var(--r-pill);display:inline-block}
+    .dot.good{background:var(--good);box-shadow:0 0 0 3px rgba(22,163,74,0.15)}
+    .dot.warn{background:var(--warn);box-shadow:0 0 0 3px rgba(217,119,6,0.15)}
+    .dot.bad{background:var(--bad);box-shadow:0 0 0 3px rgba(220,38,38,0.15)}
+    .layout{display:grid;grid-template-columns:270px minmax(0,1fr);min-height:860px}
+    .sidebar{background:linear-gradient(180deg,var(--nav-bg),var(--nav-bg-end));color:#d7e3f4;padding:20px 14px;border-right:1px solid #1c3350;display:flex;flex-direction:column;gap:16px}
+    .product{padding:10px 12px;border:1px solid var(--nav-product-border);border-radius:12px;background:linear-gradient(180deg,#112642,#102238)}
+    .product h1{margin:0;font-size:14px;font-weight:700;color:#f3f8ff}
+    .product p{margin:4px 0 0;font-size:12px;color:var(--nav-text-muted)}
+    .nav{display:grid;gap:8px}
+    .nav-item{border:1px solid var(--nav-item-border);border-radius:var(--r-md);padding:10px 12px;font-size:13px;color:var(--nav-text);background:var(--nav-item-bg)}
+    .nav-item.active{color:var(--nav-text-active);border-color:var(--nav-item-active-border);background:linear-gradient(180deg,#1d3f67,#183554);box-shadow:inset 0 0 0 1px rgba(95,150,230,0.25)}
+    .nav-foot{margin-top:auto;border:1px solid var(--nav-item-border);border-radius:var(--r-md);padding:10px 12px;font-size:12px;background:var(--nav-item-bg);color:var(--nav-foot-text);line-height:1.45}
+    .content{padding:24px;display:grid;gap:18px;align-content:start;background:linear-gradient(180deg,#f9fbff,#f3f7fc)}
+    .header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+    .header h2{margin:0;font-size:28px;font-weight:760;letter-spacing:-0.4px}
+    .header p{margin:4px 0 0;font-size:14px;color:var(--muted)}
+    .actions{display:flex;gap:8px;flex-wrap:wrap}
+    .btn{border-radius:var(--r-md);border:1px solid var(--line);background:white;color:var(--text);padding:8px 12px;font-size:13px;font-weight:600;cursor:default;font-family:var(--font)}
+    .btn.primary{background:linear-gradient(180deg,var(--primary-2),var(--primary));color:#fff;border-color:var(--primary-border)}
+    .btn.danger{background:linear-gradient(180deg,#ef4444,#dc2626);color:#fff;border-color:#b91c1c}
+    .btn.ghost{background:transparent;border-color:transparent;color:var(--primary)}
+    .btn.sm{padding:5px 8px;font-size:12px}
+    .cards{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:12px}
+    .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-lg);padding:14px;box-shadow:var(--shadow-md)}
+    .card .label{font-size:12px;color:var(--muted)}
+    .card .value{margin:8px 0 0;font-size:24px;font-weight:760;letter-spacing:-0.3px}
+    .split{display:grid;grid-template-columns:1.6fr 1fr;gap:12px}
+    .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-lg);padding:16px}
+    .panel h3{margin:0 0 10px;font-size:16px}
+    .progress-row{display:grid;grid-template-columns:130px 1fr auto;align-items:center;gap:10px;margin:8px 0;font-size:13px}
+    .bar{height:8px;border-radius:var(--r-pill);background:#e6edf7;overflow:hidden}
+    .bar>span{display:block;height:100%;border-radius:var(--r-pill);background:linear-gradient(90deg,#2e82ff,#1f6fe5)}
+    table.data{width:100%;border-collapse:collapse;font-size:13px}
+    table.data th{text-align:left;padding:10px 8px;border-bottom:2px solid var(--line);font-size:11px;letter-spacing:0.3px;color:var(--subtle);font-weight:700;text-transform:uppercase}
+    table.data td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--line-light)}
+    .tag{display:inline-flex;align-items:center;border-radius:var(--r-pill);font-size:11px;padding:4px 8px;border:1px solid;font-weight:700}
+    .tag.ok{color:#166534;border-color:#a7f3d0;background:#ecfdf5}
+    .tag.fail{color:#991b1b;border-color:#fecaca;background:#fef2f2}
+    .tag.run{color:#1e40af;border-color:#bfdbfe;background:#eff6ff}
+    .tag.warn-t{color:#92400e;border-color:#fde68a;background:#fffbeb}
+    .tag.snap{color:#6b21a8;border-color:#d8b4fe;background:#faf5ff}
+    .logs{background:#0b1522;color:#d9e7ff;border-radius:12px;border:1px solid #1d3555;padding:10px;font-family:var(--font-mono);font-size:12px;line-height:1.5;min-height:160px}
+    .logs .err{color:#fca5a5}
+    .logs .ok{color:#86efac}
+    .logs .wrn{color:#fde68a}
+    .alert{padding:10px 14px;border-radius:var(--r-md);font-size:13px;display:flex;align-items:flex-start;gap:8px;margin:8px 0}
+    .alert.info{background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af}
+    .alert.success{background:#ecfdf5;border:1px solid #a7f3d0;color:#166534}
+    .alert.warn{background:#fffbeb;border:1px solid #fde68a;color:#92400e}
+    .alert.err{background:#fef2f2;border:1px solid #fecaca;color:#991b1b}
+    .filter-bar{display:flex;gap:8px;align-items:center;margin-bottom:4px;flex-wrap:wrap}
+    .filter-chip{display:inline-flex;align-items:center;gap:4px;border-radius:var(--r-pill);border:1px solid var(--line);background:#fff;padding:5px 10px;font-size:12px;color:var(--muted);cursor:default}
+    .filter-chip.on{border-color:var(--primary);color:var(--primary);background:#eff6ff}
+    .input{border:1px solid var(--line);border-radius:var(--r-md);padding:8px 12px;font-size:13px;font-family:var(--font);color:var(--text);background:#fff;outline:none}
+    .select{border:1px solid var(--line);border-radius:var(--r-md);padding:8px 12px;font-size:13px;font-family:var(--font);color:var(--text);background:#fff;appearance:none}
+    .cb{width:18px;height:18px;border:2px solid var(--line);border-radius:4px;background:#fff;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
+    .cb.on{background:var(--primary);border-color:var(--primary)}.cb.on::after{content:"✓";color:#fff;font-size:12px;font-weight:700}
+    .screen-label{text-align:center;padding:16px;font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+    .screen-sep{border:none;border-top:3px dashed var(--line);margin:40px 0}
+    .form-group{margin-bottom:16px}
+    .form-label{display:block;font-size:12px;font-weight:600;color:var(--subtle);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.3px}
+    .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .checkbox-row{display:flex;align-items:center;gap:8px;font-size:13px;margin:6px 0}
+    .time-chip{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border:1px solid var(--line);border-radius:var(--r-md);font-size:13px;background:#fff}
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════
+     MANAGER SCREEN 1: DASHBOARD
+     ═══════════════════════════════════════════════════════════ -->
+<div class="screen-label">Manager Screen 1 of 7 — Dashboard</div>
+<main class="window">
+  <div class="topbar">
+    <div class="title">SQL Server Data Extractor</div>
+    <div class="top-groups">
+      <span class="chip"><span class="dot good"></span>Service: Running</span>
+      <span class="chip"><span class="dot good"></span>IPC Connected</span>
+      <span class="chip"><span class="dot good"></span>SQL: Online</span>
+      <span class="chip"><span class="dot warn"></span>Next run: 12:00</span>
+    </div>
+  </div>
+  <section class="layout">
+    <aside class="sidebar">
+      <div class="product"><h1>Management Console</h1><p>Windows Service Control</p></div>
+      <nav class="nav">
+        <div class="nav-item active">Dashboard</div>
+        <div class="nav-item">Runs</div>
+        <div class="nav-item">Tables</div>
+        <div class="nav-item">Diagnostics</div>
+        <div class="nav-item">Settings</div>
+        <div class="nav-item">Logs</div>
+      </nav>
+      <div class="nav-foot">Correlation ID<br/><strong>run_2026_02_12_0800_1a2b</strong></div>
+    </aside>
+    <div class="content">
+      <header class="header">
+        <div><h2>Dashboard</h2><p>Service health, batch progress, and CDC sync status.</p></div>
+        <div class="actions">
+          <button class="btn primary">Run Now</button>
+          <button class="btn">Open Logs</button>
+          <button class="btn">Diagnostics</button>
+        </div>
+      </header>
+      <section class="cards">
+        <article class="card"><p class="label">Service Status</p><p class="value" style="color:var(--good)">Running</p></article>
+        <article class="card"><p class="label">Last Run</p><p class="value">08:00 &bull; OK</p></article>
+        <article class="card"><p class="label">Duration</p><p class="value">07m 12s</p></article>
+        <article class="card"><p class="label">CDC Lag</p><p class="value" style="color:var(--warn)">12,984 LSN</p></article>
+      </section>
+      <section class="split">
+        <article class="panel">
+          <h3>Current Activity</h3>
+          <div class="progress-row"><span>dbo.Orders</span><div class="bar"><span style="width:88%"></span></div><strong>88%</strong></div>
+          <div class="progress-row"><span>dbo.Users</span><div class="bar"><span style="width:53%"></span></div><strong>53%</strong></div>
+          <div class="progress-row"><span>dbo.Invoices</span><div class="bar"><span style="width:36%"></span></div><strong>36%</strong></div>
+          <div class="progress-row"><span>dbo.Products</span><div class="bar"><span style="width:94%"></span></div><strong>94%</strong></div>
+        </article>
+        <article class="panel">
+          <h3>Diagnostics</h3>
+          <table class="data">
+            <thead><tr><th>Check</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>SQL Agent</td><td><span class="tag ok">RUNNING</span></td></tr>
+              <tr><td>CDC Jobs</td><td><span class="tag ok">OK</span></td></tr>
+              <tr><td>Permissions</td><td><span class="tag ok">OK</span></td></tr>
+              <tr><td>Retention</td><td><span class="tag run">7 days</span></td></tr>
+            </tbody>
+          </table>
+        </article>
+      </section>
+      <article class="panel">
+        <h3>Recent Runs</h3>
+        <table class="data">
+          <thead><tr><th>Started</th><th>Type</th><th>Status</th><th>Duration</th><th>Tables</th></tr></thead>
+          <tbody>
+            <tr><td>2026-02-12 08:00</td><td>DELTA</td><td><span class="tag ok">SUCCEEDED</span></td><td>00:07:12</td><td>5/5</td></tr>
+            <tr><td>2026-02-11 18:00</td><td>DELTA</td><td><span class="tag fail">FAILED</span></td><td>00:03:20</td><td>2/5</td></tr>
+            <tr><td>2026-02-11 12:00</td><td>DELTA</td><td><span class="tag ok">SUCCEEDED</span></td><td>00:09:11</td><td>5/5</td></tr>
+          </tbody>
+        </table>
+      </article>
+      <article class="panel">
+        <h3>Live Logs</h3>
+        <div class="logs">
+          11:02:01  INFO  Starting DELTA batch run_2026_02_12_0800_1a2b<br/>
+          11:02:04  INFO  dbo.Orders from_lsn=0x000...1A to_lsn=0x000...5F<br/>
+          <span class="ok">11:02:07  INFO  Uploaded chunk 3/9 (rows=15,000)</span><br/>
+          <span class="wrn">11:02:09  WARN  Retry(1/3) for downstream timeout</span><br/>
+          <span class="ok">11:02:16  INFO  Retry succeeded. Continuing...</span>
+        </div>
+      </article>
+    </div>
+  </section>
+</main>
+
+<!-- ═══════════════════════════════════════════════════════════
+     MANAGER SCREEN 2: RUNS LIST
+     ═══════════════════════════════════════════════════════════ -->
+<hr class="screen-sep"/>
+<div class="screen-label">Manager Screen 2 of 7 — Runs</div>
+<main class="window">
+  <div class="topbar">
+    <div class="title">SQL Server Data Extractor</div>
+    <div class="top-groups">
+      <span class="chip"><span class="dot good"></span>Service: Running</span>
+      <span class="chip"><span class="dot good"></span>IPC Connected</span>
+      <span class="chip"><span class="dot good"></span>SQL: Online</span>
+    </div>
+  </div>
+  <section class="layout">
+    <aside class="sidebar">
+      <div class="product"><h1>Management Console</h1><p>Windows Service Control</p></div>
+      <nav class="nav">
+        <div class="nav-item">Dashboard</div>
+        <div class="nav-item active">Runs</div>
+        <div class="nav-item">Tables</div>
+        <div class="nav-item">Diagnostics</div>
+        <div class="nav-item">Settings</div>
+        <div class="nav-item">Logs</div>
+      </nav>
+    </aside>
+    <div class="content">
+      <header class="header">
+        <div><h2>Runs</h2><p>History of all batch extraction runs.</p></div>
+        <div class="actions"><button class="btn primary">Run Now</button></div>
+      </header>
+      <div class="filter-bar">
+        <span class="filter-chip on">All</span>
+        <span class="filter-chip">Snapshot</span>
+        <span class="filter-chip">Delta</span>
+        <span style="width:1px;height:20px;background:var(--line);margin:0 4px"></span>
+        <span class="filter-chip on">All Status</span>
+        <span class="filter-chip">Succeeded</span>
+        <span class="filter-chip">Failed</span>
+        <span class="filter-chip">Aborted</span>
+        <input class="input" placeholder="Search batch ID..." style="margin-left:auto;max-width:200px" />
+      </div>
+      <article class="panel">
+        <table class="data">
+          <thead><tr><th>Started</th><th>Batch ID</th><th>Type</th><th>Trigger</th><th>Status</th><th>Duration</th><th>Tables</th><th>Rows</th></tr></thead>
+          <tbody>
+            <tr><td>2026-02-12 08:00</td><td style="font-family:var(--font-mono);font-size:12px">run_0212_0800_a1</td><td>DELTA</td><td>Scheduled</td><td><span class="tag ok">SUCCEEDED</span></td><td>00:07:12</td><td>5/5</td><td>48,231</td></tr>
+            <tr><td>2026-02-11 18:00</td><td style="font-family:var(--font-mono);font-size:12px">run_0211_1800_b2</td><td>DELTA</td><td>Scheduled</td><td><span class="tag fail">FAILED</span></td><td>00:03:20</td><td>2/5</td><td>12,004</td></tr>
+            <tr><td>2026-02-11 12:00</td><td style="font-family:var(--font-mono);font-size:12px">run_0211_1200_c3</td><td>DELTA</td><td>Scheduled</td><td><span class="tag ok">SUCCEEDED</span></td><td>00:09:11</td><td>5/5</td><td>92,718</td></tr>
+            <tr><td>2026-02-11 08:00</td><td style="font-family:var(--font-mono);font-size:12px">run_0211_0800_d4</td><td>DELTA</td><td>Manual</td><td><span class="tag ok">SUCCEEDED</span></td><td>00:05:45</td><td>5/5</td><td>31,200</td></tr>
+            <tr><td>2026-02-10 18:00</td><td style="font-family:var(--font-mono);font-size:12px">run_0210_1800_e5</td><td>DELTA</td><td>Scheduled</td><td><span class="tag warn-t">ABORTED</span></td><td>00:01:12</td><td>0/5</td><td>0</td></tr>
+            <tr><td>2026-02-10 08:00</td><td style="font-family:var(--font-mono);font-size:12px">run_0210_0800_f6</td><td>SNAPSHOT</td><td>Manual</td><td><span class="tag ok">SUCCEEDED</span></td><td>01:42:31</td><td>5/5</td><td>14,238,102</td></tr>
+          </tbody>
+        </table>
+      </article>
+    </div>
+  </section>
+</main>
+
+<!-- ═══════════════════════════════════════════════════════════
+     MANAGER SCREEN 3: RUN DETAILS
+     ═══════════════════════════════════════════════════════════ -->
+<hr class="screen-sep"/>
+<div class="screen-label">Manager Screen 3 of 7 — Run Details</div>
+<main class="window">
+  <div class="topbar">
+    <div class="title">SQL Server Data Extractor</div>
+    <div class="top-groups">
+      <span class="chip"><span class="dot good"></span>Service: Running</span>
+      <span class="chip"><span class="dot good"></span>IPC Connected</span>
+    </div>
+  </div>
+  <section class="layout">
+    <aside class="sidebar">
+      <div class="product"><h1>Management Console</h1><p>Windows Service Control</p></div>
+      <nav class="nav">
+        <div class="nav-item">Dashboard</div>
+        <div class="nav-item active">Runs</div>
+        <div class="nav-item">Tables</div>
+        <div class="nav-item">Diagnostics</div>
+        <div class="nav-item">Settings</div>
+        <div class="nav-item">Logs</div>
+      </nav>
+      <div class="nav-foot">Batch<br/><strong>run_0211_1800_b2</strong></div>
+    </aside>
+    <div class="content">
+      <header class="header">
+        <div>
+          <div style="display:flex;align-items:center;gap:10px"><button class="btn sm ghost" style="padding:4px 8px">← Back to Runs</button></div>
+          <h2 style="margin-top:8px">Run Details</h2>
+        </div>
+      </header>
+      <section class="cards">
+        <article class="card"><p class="label">Batch ID</p><p class="value" style="font-size:14px;font-family:var(--font-mono)">run_0211_1800_b2</p></article>
+        <article class="card"><p class="label">Type / Trigger</p><p class="value" style="font-size:16px">DELTA / Scheduled</p></article>
+        <article class="card"><p class="label">Status</p><p class="value"><span class="tag fail" style="font-size:14px;padding:6px 12px">FAILED</span></p></article>
+        <article class="card"><p class="label">Duration</p><p class="value">03m 20s</p></article>
+      </section>
+
+      <section class="split">
+        <article class="panel">
+          <h3>Datasets (Tables)</h3>
+          <table class="data">
+            <thead><tr><th>Table</th><th>from_lsn</th><th>to_lsn</th><th>Rows</th><th>Chunks</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td><strong>dbo.Orders</strong></td><td style="font-family:var(--font-mono);font-size:11px">0x00...1A</td><td style="font-family:var(--font-mono);font-size:11px">0x00...5F</td><td>8,412</td><td>3/3</td><td><span class="tag ok">COMMITTED</span></td></tr>
+              <tr><td><strong>dbo.Users</strong></td><td style="font-family:var(--font-mono);font-size:11px">0x00...1A</td><td style="font-family:var(--font-mono);font-size:11px">0x00...5F</td><td>3,592</td><td>2/2</td><td><span class="tag ok">COMMITTED</span></td></tr>
+              <tr><td><strong>dbo.Products</strong></td><td colspan="2" style="color:var(--bad)">—</td><td>0</td><td>0/0</td><td><span class="tag fail">PERMISSION_DENIED</span></td></tr>
+              <tr><td><strong>dbo.SmallDict</strong></td><td colspan="2" style="color:var(--muted)">snapshot</td><td>0</td><td>0/0</td><td><span class="tag fail">SKIPPED</span></td></tr>
+              <tr><td><strong>dbo.Invoices</strong></td><td colspan="2" style="color:var(--muted)">—</td><td>0</td><td>0/0</td><td><span class="tag fail">SKIPPED</span></td></tr>
+            </tbody>
+          </table>
+        </article>
+        <article class="panel">
+          <h3>Errors</h3>
+          <div class="alert err"><span>✕</span><div><strong>PERMISSION_DENIED</strong> on <code>dbo.Products</code><br/>User does not have SELECT permission on cdc.dbo_Products_CT. Grant <code>db_datareader</code> on CDC tables.</div></div>
+          <div class="alert warn"><span>⚠</span><div><strong>BATCH_PARTIAL</strong>: 3 tables skipped due to preceding error. Batch marked as FAILED.</div></div>
+        </article>
+      </section>
+
+      <article class="panel">
+        <h3>Logs for This Run</h3>
+        <div style="display:flex;gap:8px;margin-bottom:10px">
+          <button class="btn sm">Pause</button>
+          <button class="btn sm">Copy</button>
+          <button class="btn sm">Export</button>
+        </div>
+        <div class="logs">
+          18:00:01  INFO  Starting DELTA batch run_0211_1800_b2<br/>
+          18:00:03  INFO  dbo.Orders from_lsn=0x00...1A to_lsn=0x00...5F<br/>
+          <span class="ok">18:01:12  INFO  dbo.Orders: COMMITTED (8,412 rows, 3 chunks)</span><br/>
+          18:01:15  INFO  dbo.Users from_lsn=0x00...1A to_lsn=0x00...5F<br/>
+          <span class="ok">18:02:01  INFO  dbo.Users: COMMITTED (3,592 rows, 2 chunks)</span><br/>
+          <span class="err">18:02:04  ERROR dbo.Products: PERMISSION_DENIED - SELECT on cdc.dbo_Products_CT</span><br/>
+          <span class="err">18:02:05  FATAL Batch FAILED: stopping remaining tables</span><br/>
+          18:03:20  INFO  Batch finished: status=FAILED, committed=2, failed=1, skipped=2
+        </div>
+      </article>
+    </div>
+  </section>
+</main>
+
+<!-- ═══════════════════════════════════════════════════════════
+     MANAGER SCREEN 4: TABLES
+     ═══════════════════════════════════════════════════════════ -->
+<hr class="screen-sep"/>
+<div class="screen-label">Manager Screen 4 of 7 — Tables</div>
+<main class="window">
+  <div class="topbar">
+    <div class="title">SQL Server Data Extractor</div>
+    <div class="top-groups">
+      <span class="chip"><span class="dot good"></span>Service: Running</span>
+      <span class="chip"><span class="dot good"></span>SQL: Online</span>
+    </div>
+  </div>
+  <section class="layout">
+    <aside class="sidebar">
+      <div class="product"><h1>Management Console</h1><p>Windows Service Control</p></div>
+      <nav class="nav">
+        <div class="nav-item">Dashboard</div>
+        <div class="nav-item">Runs</div>
+        <div class="nav-item active">Tables</div>
+        <div class="nav-item">Diagnostics</div>
+        <div class="nav-item">Settings</div>
+        <div class="nav-item">Logs</div>
+      </nav>
+    </aside>
+    <div class="content">
+      <header class="header">
+        <div><h2>Tables</h2><p>Tracked tables, extraction mode, CDC state, and sync lag.</p></div>
+        <div class="actions"><button class="btn">Re-scan Tables</button></div>
+      </header>
+      <article class="panel">
+        <table class="data">
+          <thead><tr><th>Table</th><th>Mode</th><th>CDC</th><th>Last LSN</th><th>Last Sync</th><th>Lag</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><strong>dbo.Orders</strong></td>
+              <td><span class="tag run">CDC</span></td>
+              <td><span class="tag ok">ON</span></td>
+              <td style="font-family:var(--font-mono);font-size:11px">0x00...5F</td>
+              <td>2026-02-12 08:07</td>
+              <td><span style="color:var(--good)">0</span></td>
+              <td><span class="tag ok">OK</span></td>
+              <td><button class="btn sm ghost">Re-init</button></td>
+            </tr>
+            <tr>
+              <td><strong>dbo.Users</strong></td>
+              <td><span class="tag run">CDC</span></td>
+              <td><span class="tag ok">ON</span></td>
+              <td style="font-family:var(--font-mono);font-size:11px">0x00...5F</td>
+              <td>2026-02-12 08:07</td>
+              <td><span style="color:var(--good)">0</span></td>
+              <td><span class="tag ok">OK</span></td>
+              <td><button class="btn sm ghost">Re-init</button></td>
+            </tr>
+            <tr>
+              <td><strong>dbo.Products</strong></td>
+              <td><span class="tag run">CDC</span></td>
+              <td><span class="tag ok">ON</span></td>
+              <td style="font-family:var(--font-mono);font-size:11px">0x00...3A</td>
+              <td>2026-02-11 12:09</td>
+              <td><span style="color:var(--warn)">4,821</span></td>
+              <td><span class="tag fail">PERM ERR</span></td>
+              <td><button class="btn sm ghost">Re-init</button></td>
+            </tr>
+            <tr>
+              <td><strong>dbo.SmallDict</strong></td>
+              <td><span class="tag snap">SNAP</span></td>
+              <td><span class="tag warn-t">OFF</span></td>
+              <td style="color:var(--muted)">—</td>
+              <td>2026-02-12 08:07</td>
+              <td style="color:var(--muted)">n/a</td>
+              <td><span class="tag ok">OK</span></td>
+              <td><button class="btn sm ghost">Re-init</button></td>
+            </tr>
+            <tr>
+              <td><strong>dbo.Invoices</strong></td>
+              <td><span class="tag run">CDC</span></td>
+              <td><span class="tag ok">ON</span></td>
+              <td style="font-family:var(--font-mono);font-size:11px">0x00...5F</td>
+              <td>2026-02-12 08:07</td>
+              <td><span style="color:var(--good)">0</span></td>
+              <td><span class="tag ok">OK</span></td>
+              <td><button class="btn sm ghost">Re-init</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </article>
+      <div class="alert err"><span>✕</span><div><strong>dbo.Products</strong>: Permission error prevents CDC extraction. Last successful sync was 2026-02-11 12:09. Lag accumulating — fix permissions or data may expire past retention window.</div></div>
+    </div>
+  </section>
+</main>
+
+<!-- ═══════════════════════════════════════════════════════════
+     MANAGER SCREEN 5: DIAGNOSTICS
+     ═══════════════════════════════════════════════════════════ -->
+<hr class="screen-sep"/>
+<div class="screen-label">Manager Screen 5 of 7 — Diagnostics</div>
+<main class="window">
+  <div class="topbar">
+    <div class="title">SQL Server Data Extractor</div>
+    <div class="top-groups">
+      <span class="chip"><span class="dot good"></span>Service: Running</span>
+      <span class="chip"><span class="dot good"></span>SQL: Online</span>
+    </div>
+  </div>
+  <section class="layout">
+    <aside class="sidebar">
+      <div class="product"><h1>Management Console</h1><p>Windows Service Control</p></div>
+      <nav class="nav">
+        <div class="nav-item">Dashboard</div>
+        <div class="nav-item">Runs</div>
+        <div class="nav-item">Tables</div>
+        <div class="nav-item active">Diagnostics</div>
+        <div class="nav-item">Settings</div>
+        <div class="nav-item">Logs</div>
+      </nav>
+    </aside>
+    <div class="content">
+      <header class="header">
+        <div><h2>Diagnostics</h2><p>Prerequisites checks, permissions, SQL Agent status, and CDC health.</p></div>
+        <div class="actions"><button class="btn primary">Re-check All</button></div>
+      </header>
+
+      <section class="split">
+        <article class="panel">
+          <h3>SQL Server Checks</h3>
+          <table class="data">
+            <thead><tr><th>Check</th><th>Status</th><th>Details</th></tr></thead>
+            <tbody>
+              <tr><td>SQL Server connectivity</td><td><span class="tag ok">OK</span></td><td>SQLSERVER01\MAIN — SQL Server 2019</td></tr>
+              <tr><td>SQL Agent</td><td><span class="tag ok">RUNNING</span></td><td>Agent service is active</td></tr>
+              <tr><td>CDC on database</td><td><span class="tag ok">ENABLED</span></td><td>OrdersDB</td></tr>
+              <tr><td>CDC capture job</td><td><span class="tag ok">OK</span></td><td>cdc.OrdersDB_capture — enabled</td></tr>
+              <tr><td>CDC cleanup job</td><td><span class="tag ok">OK</span></td><td>cdc.OrdersDB_cleanup — enabled</td></tr>
+              <tr><td>Retention</td><td><span class="tag run">7 days</span></td><td>Minimum enforced</td></tr>
+            </tbody>
+          </table>
+        </article>
+        <article class="panel">
+          <h3>Permissions</h3>
+          <table class="data">
+            <thead><tr><th>Permission</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>db_owner / cdc_admin</td><td><span class="tag ok">OK</span></td></tr>
+              <tr><td>SELECT on sys.tables</td><td><span class="tag ok">OK</span></td></tr>
+              <tr><td>SELECT on CDC tables</td><td><span class="tag fail">PARTIAL</span></td></tr>
+              <tr><td>EXECUTE on cdc functions</td><td><span class="tag ok">OK</span></td></tr>
+            </tbody>
+          </table>
+          <div class="alert warn" style="margin-top:12px"><span>⚠</span><div><strong>dbo.Products</strong>: Missing SELECT on <code>cdc.dbo_Products_CT</code>. Run: <code style="background:#f2f5fa;padding:2px 4px;border-radius:3px">GRANT SELECT ON cdc.dbo_Products_CT TO [svc-extractor]</code></div></div>
+        </article>
+      </section>
+
+      <section class="split">
+        <article class="panel">
+          <h3>Downstream Service</h3>
+          <table class="data">
+            <thead><tr><th>Check</th><th>Status</th><th>Details</th></tr></thead>
+            <tbody>
+              <tr><td>HTTPS connectivity</td><td><span class="tag ok">OK</span></td><td>downstream.example.com</td></tr>
+              <tr><td>OAuth tokens</td><td><span class="tag ok">VALID</span></td><td>Expires in 58 min; refresh available</td></tr>
+              <tr><td>API version</td><td><span class="tag run">v1</span></td><td>Compatible</td></tr>
+            </tbody>
+          </table>
+        </article>
+        <article class="panel">
+          <h3>IPC / Service</h3>
+          <table class="data">
+            <thead><tr><th>Check</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>Named Pipe</td><td><span class="tag ok">CONNECTED</span></td></tr>
+              <tr><td>Service PID</td><td>12482</td></tr>
+              <tr><td>Service uptime</td><td>4h 12m</td></tr>
+              <tr><td>State store</td><td><span class="tag ok">OK</span></td></tr>
+            </tbody>
+          </table>
+        </article>
+      </section>
+    </div>
+  </section>
+</main>
+
+<!-- ═══════════════════════════════════════════════════════════
+     MANAGER SCREEN 6: SETTINGS
+     ═══════════════════════════════════════════════════════════ -->
+<hr class="screen-sep"/>
+<div class="screen-label">Manager Screen 6 of 7 — Settings</div>
+<main class="window">
+  <div class="topbar">
+    <div class="title">SQL Server Data Extractor</div>
+    <div class="top-groups">
+      <span class="chip"><span class="dot good"></span>Service: Running</span>
+    </div>
+  </div>
+  <section class="layout">
+    <aside class="sidebar">
+      <div class="product"><h1>Management Console</h1><p>Windows Service Control</p></div>
+      <nav class="nav">
+        <div class="nav-item">Dashboard</div>
+        <div class="nav-item">Runs</div>
+        <div class="nav-item">Tables</div>
+        <div class="nav-item">Diagnostics</div>
+        <div class="nav-item active">Settings</div>
+        <div class="nav-item">Logs</div>
+      </nav>
+    </aside>
+    <div class="content">
+      <header class="header">
+        <div><h2>Settings</h2><p>Manage schedule, retention, thresholds, and service configuration.</p></div>
+        <div class="actions"><button class="btn primary">Save Changes</button></div>
+      </header>
+
+      <section class="split">
+        <article class="panel">
+          <h3>Schedule</h3>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0">
+            <div class="time-chip"><span class="cb on" style="width:16px;height:16px"></span> 08:00</div>
+            <div class="time-chip"><span class="cb on" style="width:16px;height:16px"></span> 12:00</div>
+            <div class="time-chip"><span class="cb on" style="width:16px;height:16px"></span> 18:00</div>
+            <button class="btn sm" style="border-style:dashed">+ Add</button>
+          </div>
+          <div class="checkbox-row"><span class="cb on"></span> Prevent parallel runs</div>
+          <p style="font-size:12px;color:var(--muted);margin-top:8px">Timezone: UTC+3 (Europe/Moscow)</p>
+        </article>
+        <article class="panel">
+          <h3>CDC &amp; Retention</h3>
+          <div class="form-group">
+            <label class="form-label">Minimum retention</label>
+            <div style="display:flex;align-items:center;gap:8px"><input class="input" value="7" style="width:80px;text-align:center"/><span style="font-size:13px;color:var(--muted)">days</span></div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Batch inactivity TTL</label>
+            <div style="display:flex;align-items:center;gap:8px"><input class="input" value="10" style="width:80px;text-align:center"/><span style="font-size:13px;color:var(--muted)">minutes</span></div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Small-table SNAP threshold</label>
+            <div style="display:flex;align-items:center;gap:8px"><input class="input" value="1000" style="width:100px;text-align:center"/><span style="font-size:13px;color:var(--muted)">rows</span></div>
+          </div>
+        </article>
+      </section>
+
+      <section class="split">
+        <article class="panel">
+          <h3>SQL Server Connection</h3>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Server</label><input class="input" value="SQLSERVER01" style="width:100%"/></div>
+            <div class="form-group"><label class="form-label">Database</label><input class="input" value="OrdersDB" style="width:100%"/></div>
+          </div>
+          <div class="form-group"><label class="form-label">Auth</label><input class="input" value="Windows / AD (DOMAIN\svc-extractor)" style="width:100%" /></div>
+          <div class="checkbox-row"><span class="cb on"></span> Encrypt (TLS)</div>
+          <button class="btn sm" style="margin-top:8px">Test Connection</button>
+        </article>
+        <article class="panel">
+          <h3>Downstream API</h3>
+          <div class="form-group"><label class="form-label">Base URL</label><input class="input" value="https://downstream.example.com/v1" style="width:100%"/></div>
+          <div class="form-group"><label class="form-label">OAuth Status</label>
+            <div style="display:flex;align-items:center;gap:8px"><span class="tag ok">Authorized</span><button class="btn sm ghost">Re-authorize</button></div>
+          </div>
+          <div class="form-group"><label class="form-label">Heartbeat interval</label>
+            <div style="display:flex;align-items:center;gap:8px"><input class="input" value="120" style="width:80px;text-align:center"/><span style="font-size:13px;color:var(--muted)">seconds</span></div>
+          </div>
+        </article>
+      </section>
+
+      <article class="panel">
+        <h3>Paths &amp; Service</h3>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Config path</label><input class="input" value="C:\ProgramData\SQLExtractor\config.json" style="width:100%"/></div>
+          <div class="form-group"><label class="form-label">State store (SQLite)</label><input class="input" value="C:\ProgramData\SQLExtractor\state.db" style="width:100%"/></div>
+        </div>
+        <div class="form-group"><label class="form-label">Log directory</label><input class="input" value="C:\ProgramData\SQLExtractor\logs\" style="width:100%"/></div>
+      </article>
+    </div>
+  </section>
+</main>
+
+<!-- ═══════════════════════════════════════════════════════════
+     MANAGER SCREEN 7: LOGS
+     ═══════════════════════════════════════════════════════════ -->
+<hr class="screen-sep"/>
+<div class="screen-label">Manager Screen 7 of 7 — Logs</div>
+<main class="window">
+  <div class="topbar">
+    <div class="title">SQL Server Data Extractor</div>
+    <div class="top-groups">
+      <span class="chip"><span class="dot good"></span>Service: Running</span>
+      <span class="chip"><span class="dot good"></span>IPC Connected</span>
+    </div>
+  </div>
+  <section class="layout">
+    <aside class="sidebar">
+      <div class="product"><h1>Management Console</h1><p>Windows Service Control</p></div>
+      <nav class="nav">
+        <div class="nav-item">Dashboard</div>
+        <div class="nav-item">Runs</div>
+        <div class="nav-item">Tables</div>
+        <div class="nav-item">Diagnostics</div>
+        <div class="nav-item">Settings</div>
+        <div class="nav-item active">Logs</div>
+      </nav>
+    </aside>
+    <div class="content">
+      <header class="header">
+        <div><h2>Logs</h2><p>Live streaming logs from the Windows Service via IPC.</p></div>
+        <div class="actions">
+          <button class="btn">Pause</button>
+          <button class="btn">Copy All</button>
+          <button class="btn primary">Export</button>
+        </div>
+      </header>
+
+      <div class="filter-bar">
+        <span class="filter-chip on">All</span>
+        <span class="filter-chip">INFO</span>
+        <span class="filter-chip">WARN</span>
+        <span class="filter-chip">ERROR</span>
+        <input class="input" placeholder="Filter logs..." style="margin-left:auto;max-width:240px" />
+        <span style="font-size:12px;color:var(--muted)">Auto-scroll: ON</span>
+      </div>
+
+      <article class="panel" style="padding:0;overflow:hidden">
+        <div class="logs" style="min-height:520px;border-radius:var(--r-lg);border:none">
+          08:00:01  INFO  ══════ Scheduled trigger: DELTA batch ══════<br/>
+          08:00:01  INFO  Starting batch run_0212_0800_a1 (type=DELTA, trigger=SCHEDULED)<br/>
+          08:00:02  INFO  Loading state for 5 tables<br/>
+          08:00:03  INFO  Creating batch on downstream... batch_id=uuid-abc-123<br/>
+          <span class="ok">08:00:04  INFO  Batch created. Lease token acquired.</span><br/>
+          08:00:05  INFO  ── dbo.Orders ──<br/>
+          08:00:05  INFO  from_lsn=0x00...1A to_lsn=0x00...5F (range: 8,412 changes)<br/>
+          08:00:06  INFO  Creating dataset for dbo.Orders<br/>
+          08:00:07  INFO  Uploading chunk 1/3 (rows=3,000, bytes=412KB, gzip)<br/>
+          08:00:09  INFO  Uploading chunk 2/3 (rows=3,000, bytes=398KB, gzip)<br/>
+          08:00:11  INFO  Uploading chunk 3/3 (rows=2,412, bytes=312KB, gzip)<br/>
+          <span class="ok">08:00:12  INFO  dbo.Orders: dataset COMMITTED. Advancing LSN to 0x00...5F</span><br/>
+          08:00:13  INFO  ── dbo.Users ──<br/>
+          08:00:13  INFO  from_lsn=0x00...1A to_lsn=0x00...5F (range: 3,592 changes)<br/>
+          08:00:14  INFO  Uploading chunk 1/2...<br/>
+          <span class="wrn">08:00:16  WARN  Retry(1/3): downstream timeout after 3s</span><br/>
+          <span class="ok">08:00:20  INFO  Retry succeeded.</span><br/>
+          08:00:21  INFO  Uploading chunk 2/2...<br/>
+          <span class="ok">08:00:23  INFO  dbo.Users: dataset COMMITTED.</span><br/>
+          08:00:24  INFO  ── dbo.Products ──<br/>
+          08:00:24  INFO  from_lsn=0x00...3A to_lsn=0x00...5F (range: 1,204 changes)<br/>
+          08:00:25  INFO  Uploading chunk 1/1...<br/>
+          <span class="ok">08:00:26  INFO  dbo.Products: dataset COMMITTED.</span><br/>
+          08:00:27  INFO  ── dbo.SmallDict (SNAP mode) ──<br/>
+          08:00:27  INFO  Full snapshot: 420 rows<br/>
+          <span class="ok">08:00:28  INFO  dbo.SmallDict: dataset COMMITTED.</span><br/>
+          08:00:29  INFO  ── dbo.Invoices ──<br/>
+          08:00:29  INFO  from_lsn=0x00...1A to_lsn=0x00...5F (range: 35,023 changes)<br/>
+          08:00:30  INFO  Uploading chunk 1/4...<br/>
+          08:00:33  INFO  Uploading chunk 2/4...<br/>
+          08:00:36  INFO  Uploading chunk 3/4...<br/>
+          08:00:39  INFO  Uploading chunk 4/4...<br/>
+          <span class="ok">08:00:40  INFO  dbo.Invoices: dataset COMMITTED.</span><br/>
+          <span class="ok">08:07:12  INFO  ══════ Batch SUCCEEDED ══════</span><br/>
+          <span class="ok">08:07:12  INFO  Summary: 5/5 tables committed, 48,231 rows, 7m12s</span><br/>
+          08:07:13  INFO  Heartbeat stopped. Next scheduled run: 12:00<br/>
+          <br/>
+          <span style="color:#4f607a">── Waiting for next event... ──</span>
+        </div>
+      </article>
+    </div>
+  </section>
+</main>
+
+</body>
+</html>

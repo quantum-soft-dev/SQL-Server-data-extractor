@@ -1,0 +1,478 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SQL Extractor - Management Console Dashboard</title>
+  <style>
+    :root {
+      --bg-0: #eef3f8;
+      --bg-1: #f7f9fc;
+      --panel: #ffffff;
+      --panel-soft: #f2f5fa;
+      --line: #d9e2ef;
+      --text: #0e1a2b;
+      --muted: #4f607a;
+      --nav-bg: #0d1b2a;
+      --nav-soft: #13253b;
+      --nav-text: #d7e3f4;
+      --primary: #1f6fe5;
+      --primary-2: #2e82ff;
+      --good: #16a34a;
+      --warn: #d97706;
+      --bad: #dc2626;
+      --radius: 14px;
+      --shadow: 0 16px 36px rgba(13, 27, 42, 0.08);
+      --font: "Segoe UI Variable", "IBM Plex Sans", "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: var(--font);
+      color: var(--text);
+      background:
+        radial-gradient(1600px 800px at 20% -20%, #d7e7ff 0%, transparent 60%),
+        radial-gradient(1000px 700px at 100% 0%, #dcecff 0%, transparent 60%),
+        linear-gradient(180deg, var(--bg-0), var(--bg-1));
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .window {
+      max-width: 1500px;
+      margin: 0 auto;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      overflow: hidden;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(180deg, #ffffff, #f8fbff);
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .title {
+      font-weight: 700;
+      letter-spacing: 0.2px;
+      font-size: 15px;
+    }
+
+    .top-groups {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: #fff;
+      padding: 6px 10px;
+      font-size: 12px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      display: inline-block;
+    }
+
+    .dot.good { background: var(--good); box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.15); }
+    .dot.warn { background: var(--warn); box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.15); }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 270px minmax(0, 1fr);
+      min-height: 860px;
+    }
+
+    .sidebar {
+      background: linear-gradient(180deg, var(--nav-bg), #08131f);
+      color: var(--nav-text);
+      padding: 20px 14px;
+      border-right: 1px solid #1c3350;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .product {
+      padding: 10px 12px;
+      border: 1px solid #2a4465;
+      border-radius: 12px;
+      background: linear-gradient(180deg, #112642, #102238);
+    }
+
+    .product h1 {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 700;
+      color: #f3f8ff;
+    }
+
+    .product p {
+      margin: 4px 0 0;
+      font-size: 12px;
+      color: #94add0;
+    }
+
+    .nav {
+      display: grid;
+      gap: 8px;
+    }
+
+    .nav-item {
+      border: 1px solid #1f3656;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 13px;
+      color: #bdd0ea;
+      background: #0f2035;
+    }
+
+    .nav-item.active {
+      color: #ffffff;
+      border-color: #2f5b95;
+      background: linear-gradient(180deg, #1d3f67, #183554);
+      box-shadow: inset 0 0 0 1px rgba(95, 150, 230, 0.25);
+    }
+
+    .nav-foot {
+      margin-top: auto;
+      border: 1px solid #1f3656;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 12px;
+      background: #0f2035;
+      color: #a7bddd;
+      line-height: 1.45;
+    }
+
+    .content {
+      padding: 24px;
+      display: grid;
+      gap: 18px;
+      align-content: start;
+      background: linear-gradient(180deg, #f9fbff, #f3f7fc);
+    }
+
+    .header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .header h2 {
+      margin: 0;
+      font-size: 28px;
+      font-weight: 760;
+      letter-spacing: -0.4px;
+    }
+
+    .header p {
+      margin: 4px 0 0;
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: white;
+      color: var(--text);
+      padding: 8px 12px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: default;
+    }
+
+    .btn.primary {
+      background: linear-gradient(180deg, var(--primary-2), var(--primary));
+      color: #fff;
+      border-color: #1d62c4;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(150px, 1fr));
+      gap: 12px;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 14px;
+      box-shadow: 0 10px 20px rgba(13, 27, 42, 0.04);
+    }
+
+    .card .label {
+      margin: 0;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .card .value {
+      margin: 8px 0 0;
+      font-size: 24px;
+      font-weight: 760;
+      letter-spacing: -0.3px;
+    }
+
+    .split {
+      display: grid;
+      grid-template-columns: 1.6fr 1fr;
+      gap: 12px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 16px;
+    }
+
+    .panel h3 {
+      margin: 0 0 10px;
+      font-size: 16px;
+    }
+
+    .progress-row {
+      display: grid;
+      grid-template-columns: 130px 1fr auto;
+      align-items: center;
+      gap: 10px;
+      margin: 10px 0;
+      font-size: 13px;
+    }
+
+    .bar {
+      height: 8px;
+      border-radius: 999px;
+      background: #e6edf7;
+      overflow: hidden;
+    }
+
+    .bar > span {
+      display: block;
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #2e82ff, #1f6fe5);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 10px 8px;
+      border-bottom: 1px solid #e5ecf6;
+    }
+
+    th {
+      font-size: 12px;
+      letter-spacing: 0.3px;
+      color: #5a6b84;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      font-size: 11px;
+      padding: 4px 8px;
+      border: 1px solid;
+      font-weight: 700;
+    }
+
+    .tag.ok { color: #166534; border-color: #a7f3d0; background: #ecfdf5; }
+    .tag.fail { color: #991b1b; border-color: #fecaca; background: #fef2f2; }
+    .tag.run { color: #1e40af; border-color: #bfdbfe; background: #eff6ff; }
+
+    .logs {
+      background: #0b1522;
+      color: #d9e7ff;
+      border-radius: 12px;
+      border: 1px solid #1d3555;
+      padding: 10px;
+      font-family: "Cascadia Mono", "Consolas", monospace;
+      font-size: 12px;
+      line-height: 1.5;
+      min-height: 180px;
+    }
+
+    .logs .err { color: #fca5a5; }
+    .logs .ok { color: #86efac; }
+
+    @media (max-width: 1180px) {
+      .cards { grid-template-columns: repeat(2, minmax(160px, 1fr)); }
+      .split { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 900px) {
+      body { padding: 0; }
+      .window { border-radius: 0; border-left: 0; border-right: 0; }
+      .layout { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+      .content { padding: 16px; }
+      .header h2 { font-size: 24px; }
+      .cards { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main class="window">
+    <div class="topbar">
+      <div class="title">SQL Server Data Extractor</div>
+      <div class="top-groups">
+        <span class="chip"><span class="dot good"></span>Service: Running</span>
+        <span class="chip"><span class="dot good"></span>IPC Connected</span>
+        <span class="chip"><span class="dot good"></span>SQL: Online</span>
+        <span class="chip"><span class="dot warn"></span>Next run: 12:00</span>
+      </div>
+    </div>
+
+    <section class="layout">
+      <aside class="sidebar">
+        <div class="product">
+          <h1>Management Console</h1>
+          <p>Windows Service Control</p>
+        </div>
+        <nav class="nav">
+          <div class="nav-item active">Dashboard</div>
+          <div class="nav-item">Runs</div>
+          <div class="nav-item">Tables</div>
+          <div class="nav-item">Diagnostics</div>
+          <div class="nav-item">Settings</div>
+          <div class="nav-item">Logs</div>
+        </nav>
+        <div class="nav-foot">
+          Correlation ID<br />
+          <strong>run_2026_02_11_0800_1a2b</strong>
+        </div>
+      </aside>
+
+      <div class="content">
+        <header class="header">
+          <div>
+            <h2>Management Console Dashboard</h2>
+            <p>Service health, batch progress, and CDC sync status in one view.</p>
+          </div>
+          <div class="actions">
+            <button class="btn primary">Run Now</button>
+            <button class="btn">Open Logs</button>
+            <button class="btn">Diagnostics</button>
+          </div>
+        </header>
+
+        <section class="cards">
+          <article class="card">
+            <p class="label">Service Status</p>
+            <p class="value">Running</p>
+          </article>
+          <article class="card">
+            <p class="label">Last Run</p>
+            <p class="value">08:00 • OK</p>
+          </article>
+          <article class="card">
+            <p class="label">Duration</p>
+            <p class="value">07m 12s</p>
+          </article>
+          <article class="card">
+            <p class="label">CDC Lag</p>
+            <p class="value">12,984 LSN</p>
+          </article>
+        </section>
+
+        <section class="split">
+          <article class="panel">
+            <h3>Current Activity</h3>
+            <div class="progress-row"><span>dbo.Orders</span><div class="bar"><span style="width: 88%"></span></div><strong>88%</strong></div>
+            <div class="progress-row"><span>dbo.Users</span><div class="bar"><span style="width: 53%"></span></div><strong>53%</strong></div>
+            <div class="progress-row"><span>dbo.Invoices</span><div class="bar"><span style="width: 36%"></span></div><strong>36%</strong></div>
+            <div class="progress-row"><span>dbo.Products</span><div class="bar"><span style="width: 94%"></span></div><strong>94%</strong></div>
+          </article>
+
+          <article class="panel">
+            <h3>Diagnostics</h3>
+            <table>
+              <thead>
+                <tr><th>Check</th><th>Status</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>SQL Agent</td><td><span class="tag ok">RUNNING</span></td></tr>
+                <tr><td>CDC Jobs</td><td><span class="tag ok">OK</span></td></tr>
+                <tr><td>Permissions</td><td><span class="tag ok">OK</span></td></tr>
+                <tr><td>Retention</td><td><span class="tag run">7 days</span></td></tr>
+              </tbody>
+            </table>
+          </article>
+        </section>
+
+        <article class="panel">
+          <h3>Recent Runs</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Started</th>
+                <th>Type</th>
+                <th>Status</th>
+                <th>Duration</th>
+                <th>Tables</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>2026-02-11 08:00</td><td>DELTA</td><td><span class="tag ok">SUCCEEDED</span></td><td>00:07:12</td><td>12/12</td></tr>
+              <tr><td>2026-02-10 18:00</td><td>DELTA</td><td><span class="tag fail">FAILED</span></td><td>00:03:20</td><td>2/12</td></tr>
+              <tr><td>2026-02-10 12:00</td><td>DELTA</td><td><span class="tag ok">SUCCEEDED</span></td><td>00:09:11</td><td>12/12</td></tr>
+              <tr><td>2026-02-10 08:00</td><td>SNAPSHOT</td><td><span class="tag ok">SUCCEEDED</span></td><td>01:42:31</td><td>12/12</td></tr>
+            </tbody>
+          </table>
+        </article>
+
+        <article class="panel">
+          <h3>Live Logs</h3>
+          <div class="logs">
+            11:02:01  INFO  Starting DELTA batch run_2026_02_11_0800_1a2b<br />
+            11:02:04  INFO  dbo.Orders from_lsn=0x000...1A to_lsn=0x000...5F<br />
+            <span class="ok">11:02:07  INFO  Uploaded chunk 3/9 (rows=15,000)</span><br />
+            11:02:09  INFO  dbo.Users from_lsn=0x000...1A to_lsn=0x000...5F<br />
+            <span class="err">11:02:11  WARN  Retry(1/3) for downstream timeout (3s)</span><br />
+            <span class="ok">11:02:16  INFO  Retry succeeded. Continuing...</span>
+          </div>
+        </article>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
