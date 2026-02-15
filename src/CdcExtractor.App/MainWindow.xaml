@@ -1,10 +1,24 @@
 <Window x:Class="CdcExtractor.App.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:CdcExtractor.App.Controls"
         Title="SQL Server CDC Data Extractor"
         Height="768" Width="1200"
-        WindowStartupLocation="CenterScreen">
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource BackgroundBrush}">
     <Grid>
-        <ContentControl x:Name="MainContent" />
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Wizard stepper at top -->
+        <Border Grid.Row="0" Padding="24,16" Background="{StaticResource SurfaceBrush}"
+                BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
+            <controls:WizardStepper x:Name="Stepper" />
+        </Border>
+
+        <!-- Page content -->
+        <ContentControl Grid.Row="1" x:Name="MainContent" />
     </Grid>
 </Window>
