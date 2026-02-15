@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <ItemGroup>
+    <PackageReference Include="Cronos" Version="0.11.1" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.2" />
+    <PackageReference Include="Serilog" Version="4.3.1" />
+    <PackageReference Include="Serilog.Extensions.Hosting" Version="10.0.0" />
+    <PackageReference Include="Serilog.Sinks.EventLog" Version="4.0.0" />
+    <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
+    <PackageReference Include="StreamJsonRpc" Version="2.24.84" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CdcExtractor.Domain\CdcExtractor.Domain.csproj" />
+    <ProjectReference Include="..\CdcExtractor.Application\CdcExtractor.Application.csproj" />
+    <ProjectReference Include="..\CdcExtractor.Infrastructure\CdcExtractor.Infrastructure.csproj" />
+    <ProjectReference Include="..\CdcExtractor.Contracts\CdcExtractor.Contracts.csproj" />
+  </ItemGroup>
+
+</Project>

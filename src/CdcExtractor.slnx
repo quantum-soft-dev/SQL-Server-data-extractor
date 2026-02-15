@@ -1,0 +1,8 @@
+<Solution>
+  <Project Path="CdcExtractor.App/CdcExtractor.App.csproj" />
+  <Project Path="CdcExtractor.Application/CdcExtractor.Application.csproj" />
+  <Project Path="CdcExtractor.Contracts/CdcExtractor.Contracts.csproj" />
+  <Project Path="CdcExtractor.Domain/CdcExtractor.Domain.csproj" />
+  <Project Path="CdcExtractor.Infrastructure/CdcExtractor.Infrastructure.csproj" />
+  <Project Path="CdcExtractor.Service/CdcExtractor.Service.csproj" />
+</Solution>

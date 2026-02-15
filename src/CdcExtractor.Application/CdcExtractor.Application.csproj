@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\CdcExtractor.Domain\CdcExtractor.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -23,10 +23,10 @@
 
 **Purpose**: Create .NET 8 solution, all projects, dependencies, and build configuration
 
-- [ ] T001 Create .NET 8 solution file src/CdcExtractor.sln with all 6 source projects (CdcExtractor.Domain, CdcExtractor.Application, CdcExtractor.Infrastructure, CdcExtractor.Contracts, CdcExtractor.Service, CdcExtractor.App) and configure project references per Clean Architecture layers in plan.md
-- [ ] T002 Create test solution with all 5 test projects (CdcExtractor.Domain.Tests, CdcExtractor.Application.Tests, CdcExtractor.Infrastructure.Tests, CdcExtractor.Service.Tests, CdcExtractor.App.Tests) in tests/ with references to corresponding source projects
-- [ ] T003 [P] Create Directory.Build.props at repository root with shared settings: TargetFramework net8.0, LangVersion 12, Nullable enable, ImplicitUsings enable, TreatWarningsAsErrors true
-- [ ] T004 [P] Add NuGet dependencies per plan.md: Microsoft.Data.SqlClient + Dapper (Infrastructure), StreamJsonRpc (Service + Contracts), Serilog + Serilog.Sinks.File + Serilog.Sinks.EventLog (Service), Polly (Infrastructure), CsvHelper (Infrastructure), Cronos (Service), CommunityToolkit.Mvvm (App), xUnit + NSubstitute + FluentAssertions (all test projects)
+- [X] T001 Create .NET 8 solution file src/CdcExtractor.sln with all 6 source projects (CdcExtractor.Domain, CdcExtractor.Application, CdcExtractor.Infrastructure, CdcExtractor.Contracts, CdcExtractor.Service, CdcExtractor.App) and configure project references per Clean Architecture layers in plan.md
+- [X] T002 Create test solution with all 5 test projects (CdcExtractor.Domain.Tests, CdcExtractor.Application.Tests, CdcExtractor.Infrastructure.Tests, CdcExtractor.Service.Tests, CdcExtractor.App.Tests) in tests/ with references to corresponding source projects
+- [X] T003 [P] Create Directory.Build.props at repository root with shared settings: TargetFramework net8.0, LangVersion 12, Nullable enable, ImplicitUsings enable, TreatWarningsAsErrors true
+- [X] T004 [P] Add NuGet dependencies per plan.md: Microsoft.Data.SqlClient + Dapper (Infrastructure), StreamJsonRpc (Service + Contracts), Serilog + Serilog.Sinks.File + Serilog.Sinks.EventLog (Service), Polly (Infrastructure), CsvHelper (Infrastructure), Cronos (Service), CommunityToolkit.Mvvm (App), xUnit + NSubstitute + FluentAssertions (all test projects)
 
 ---
 
@@ -40,34 +40,34 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T005 [P] Write unit tests for Lsn value object (parse hex, from bytes, comparison, Empty sentinel, equality, ToString) in tests/CdcExtractor.Domain.Tests/ValueObjects/LsnTests.cs
-- [ ] T006 [P] Write unit tests for TableIdentifier value object (FullName, QuotedFullName, equality, case handling) in tests/CdcExtractor.Domain.Tests/ValueObjects/TableIdentifierTests.cs
-- [ ] T007 [P] Write unit tests for SchemaHash value object (compute from manifest, equality, deterministic output) in tests/CdcExtractor.Domain.Tests/ValueObjects/SchemaHashTests.cs
-- [ ] T008 [P] Write unit tests for TableState entity (state transitions: Pending→Complete, Complete→ReBootstrap, ReBootstrap→Complete) in tests/CdcExtractor.Domain.Tests/Entities/TableStateTests.cs
-- [ ] T009 [P] Write unit tests for BatchRun entity (add datasets, status transitions, finish with duration) in tests/CdcExtractor.Domain.Tests/Entities/BatchRunTests.cs
+- [X] T005 [P] Write unit tests for Lsn value object (parse hex, from bytes, comparison, Empty sentinel, equality, ToString) in tests/CdcExtractor.Domain.Tests/ValueObjects/LsnTests.cs
+- [X] T006 [P] Write unit tests for TableIdentifier value object (FullName, QuotedFullName, equality, case handling) in tests/CdcExtractor.Domain.Tests/ValueObjects/TableIdentifierTests.cs
+- [X] T007 [P] Write unit tests for SchemaHash value object (compute from manifest, equality, deterministic output) in tests/CdcExtractor.Domain.Tests/ValueObjects/SchemaHashTests.cs
+- [X] T008 [P] Write unit tests for TableState entity (state transitions: Pending→Complete, Complete→ReBootstrap, ReBootstrap→Complete) in tests/CdcExtractor.Domain.Tests/Entities/TableStateTests.cs
+- [X] T009 [P] Write unit tests for BatchRun entity (add datasets, status transitions, finish with duration) in tests/CdcExtractor.Domain.Tests/Entities/BatchRunTests.cs
 
 ### Implementation for Foundational Phase
 
-- [ ] T010 [P] Implement all domain enums in src/CdcExtractor.Domain/Enums/: ExtractionMode.cs (Cdc, Snap), BootstrapStatus.cs (Pending, Complete, ReBootstrap), BatchType.cs (Snapshot, Delta), BatchTrigger.cs (Scheduled, Manual), BatchStatus.cs (Running, Succeeded, Failed, Aborted), DatasetStatus.cs (Created, Uploading, Committed, Aborted, Skipped)
-- [ ] T011 [P] Implement Lsn value object (IComparable\<Lsn\>, IEquatable\<Lsn\>, Parse hex string, From byte array, Empty sentinel, hex ToString) in src/CdcExtractor.Domain/ValueObjects/Lsn.cs
-- [ ] T012 [P] Implement TableIdentifier value object (Schema, Name, FullName computed "schema.table", QuotedFullName computed "[schema].[table]", IEquatable) in src/CdcExtractor.Domain/ValueObjects/TableIdentifier.cs
-- [ ] T013 [P] Implement SchemaHash value object (SHA-256 hex digest of canonical JSON, IEquatable, Compute factory method) in src/CdcExtractor.Domain/ValueObjects/SchemaHash.cs
-- [ ] T014 [P] Implement BatchId value object (Guid wrapper, New factory, Parse factory) in src/CdcExtractor.Domain/ValueObjects/BatchId.cs
-- [ ] T015 [P] Implement DatasetId value object (Guid wrapper, New factory, Parse factory) in src/CdcExtractor.Domain/ValueObjects/DatasetId.cs
-- [ ] T016 [P] Implement TableState entity with state transition methods (MarkComplete, MarkReBootstrap) and validation per data-model.md in src/CdcExtractor.Domain/Entities/TableState.cs
-- [ ] T017 [P] Implement BatchRun entity with Datasets collection, AddDataset, Finish method, and status management in src/CdcExtractor.Domain/Entities/BatchRun.cs
-- [ ] T018 [P] Implement DatasetRun entity with status lifecycle (Created→Uploading→Committed/Aborted/Skipped) in src/CdcExtractor.Domain/Entities/DatasetRun.cs
-- [ ] T019 [P] Implement SchemaManifest and ColumnInfo as records per data-model.md in src/CdcExtractor.Domain/Entities/SchemaManifest.cs
-- [ ] T020 [P] Define all domain interfaces per data-model.md method signatures in src/CdcExtractor.Domain/Interfaces/: IStateStore.cs, IBatchHistoryStore.cs, IDownstreamClient.cs, ICdcReader.cs, ICdcManager.cs, ISchemaInspector.cs, IDiagnosticsService.cs, ITokenProvider.cs, IScheduler.cs
-- [ ] T021 [P] Implement domain exceptions with contextual properties (table name, LSN range, error message) in src/CdcExtractor.Domain/Exceptions/: CdcGapException.cs, SinkUploadException.cs, PrerequisiteCheckFailedException.cs
-- [ ] T022 [P] Implement domain events as records in src/CdcExtractor.Domain/Events/: BatchStarted.cs, BatchFinished.cs, DatasetCommitted.cs, DatasetFailed.cs, CdcGapDetected.cs, TableReBootstrapFlagged.cs, SchemaChanged.cs, PrerequisiteCheckFailed.cs
-- [ ] T023 [P] Implement config models as records per quickstart.md config.json structure in src/CdcExtractor.Contracts/Config/: AppConfig.cs, SqlServerConfig.cs, DownstreamConfig.cs, ScheduleConfig.cs, CdcConfig.cs, ExtractionConfig.cs
-- [ ] T024 [P] Define IExtractorService interface and DTO records per ipc-contract.md in src/CdcExtractor.Contracts/Ipc/: IExtractorService.cs (all JSON-RPC method signatures), ServiceStatusDto.cs, BatchProgressDto.cs, LogEntryDto.cs, DiagnosticCheckDto.cs
-- [ ] T025 Implement SqlConnectionFactory (create connections from SqlServerConfig, support Windows/AD auth and SQL Login, Encrypt=True) in src/CdcExtractor.Infrastructure/SqlServer/SqlConnectionFactory.cs
-- [ ] T026 Implement StateStoreInitializer with idempotent DDL for \_\_ExtractorTableStates, \_\_ExtractorBatchHistory, \_\_ExtractorDatasetHistory, \_\_ExtractorConfig tables per data-model.md schema in src/CdcExtractor.Infrastructure/StateStore/StateStoreInitializer.cs
-- [ ] T027 Implement DapperStateStore (IStateStore: Get/GetAll/Upsert/Delete table states with parameterized queries) in src/CdcExtractor.Infrastructure/StateStore/DapperStateStore.cs
-- [ ] T028 Implement DapperBatchHistoryStore (IBatchHistoryStore: Save/UpdateStatus/GetRecent/GetById batch runs with child datasets) in src/CdcExtractor.Infrastructure/StateStore/DapperBatchHistoryStore.cs
-- [ ] T029 [P] Configure Serilog (structured JSON format, file sink with daily rolling, Windows Event Log sink for Error+Critical, enrichers for CorrelationId/BatchId/TableName) in src/CdcExtractor.Service/Logging/SerilogSetup.cs
+- [X] T010 [P] Implement all domain enums in src/CdcExtractor.Domain/Enums/: ExtractionMode.cs (Cdc, Snap), BootstrapStatus.cs (Pending, Complete, ReBootstrap), BatchType.cs (Snapshot, Delta), BatchTrigger.cs (Scheduled, Manual), BatchStatus.cs (Running, Succeeded, Failed, Aborted), DatasetStatus.cs (Created, Uploading, Committed, Aborted, Skipped)
+- [X] T011 [P] Implement Lsn value object (IComparable\<Lsn\>, IEquatable\<Lsn\>, Parse hex string, From byte array, Empty sentinel, hex ToString) in src/CdcExtractor.Domain/ValueObjects/Lsn.cs
+- [X] T012 [P] Implement TableIdentifier value object (Schema, Name, FullName computed "schema.table", QuotedFullName computed "[schema].[table]", IEquatable) in src/CdcExtractor.Domain/ValueObjects/TableIdentifier.cs
+- [X] T013 [P] Implement SchemaHash value object (SHA-256 hex digest of canonical JSON, IEquatable, Compute factory method) in src/CdcExtractor.Domain/ValueObjects/SchemaHash.cs
+- [X] T014 [P] Implement BatchId value object (Guid wrapper, New factory, Parse factory) in src/CdcExtractor.Domain/ValueObjects/BatchId.cs
+- [X] T015 [P] Implement DatasetId value object (Guid wrapper, New factory, Parse factory) in src/CdcExtractor.Domain/ValueObjects/DatasetId.cs
+- [X] T016 [P] Implement TableState entity with state transition methods (MarkComplete, MarkReBootstrap) and validation per data-model.md in src/CdcExtractor.Domain/Entities/TableState.cs
+- [X] T017 [P] Implement BatchRun entity with Datasets collection, AddDataset, Finish method, and status management in src/CdcExtractor.Domain/Entities/BatchRun.cs
+- [X] T018 [P] Implement DatasetRun entity with status lifecycle (Created→Uploading→Committed/Aborted/Skipped) in src/CdcExtractor.Domain/Entities/DatasetRun.cs
+- [X] T019 [P] Implement SchemaManifest and ColumnInfo as records per data-model.md in src/CdcExtractor.Domain/Entities/SchemaManifest.cs
+- [X] T020 [P] Define all domain interfaces per data-model.md method signatures in src/CdcExtractor.Domain/Interfaces/: IStateStore.cs, IBatchHistoryStore.cs, IDownstreamClient.cs, ICdcReader.cs, ICdcManager.cs, ISchemaInspector.cs, IDiagnosticsService.cs, ITokenProvider.cs, IScheduler.cs
+- [X] T021 [P] Implement domain exceptions with contextual properties (table name, LSN range, error message) in src/CdcExtractor.Domain/Exceptions/: CdcGapException.cs, SinkUploadException.cs, PrerequisiteCheckFailedException.cs
+- [X] T022 [P] Implement domain events as records in src/CdcExtractor.Domain/Events/: BatchStarted.cs, BatchFinished.cs, DatasetCommitted.cs, DatasetFailed.cs, CdcGapDetected.cs, TableReBootstrapFlagged.cs, SchemaChanged.cs, PrerequisiteCheckFailed.cs
+- [X] T023 [P] Implement config models as records per quickstart.md config.json structure in src/CdcExtractor.Contracts/Config/: AppConfig.cs, SqlServerConfig.cs, DownstreamConfig.cs, ScheduleConfig.cs, CdcConfig.cs, ExtractionConfig.cs
+- [X] T024 [P] Define IExtractorService interface and DTO records per ipc-contract.md in src/CdcExtractor.Contracts/Ipc/: IExtractorService.cs (all JSON-RPC method signatures), ServiceStatusDto.cs, BatchProgressDto.cs, LogEntryDto.cs, DiagnosticCheckDto.cs
+- [X] T025 Implement SqlConnectionFactory (create connections from SqlServerConfig, support Windows/AD auth and SQL Login, Encrypt=True) in src/CdcExtractor.Infrastructure/SqlServer/SqlConnectionFactory.cs
+- [X] T026 Implement StateStoreInitializer with idempotent DDL for \_\_ExtractorTableStates, \_\_ExtractorBatchHistory, \_\_ExtractorDatasetHistory, \_\_ExtractorConfig tables per data-model.md schema in src/CdcExtractor.Infrastructure/StateStore/StateStoreInitializer.cs
+- [X] T027 Implement DapperStateStore (IStateStore: Get/GetAll/Upsert/Delete table states with parameterized queries) in src/CdcExtractor.Infrastructure/StateStore/DapperStateStore.cs
+- [X] T028 Implement DapperBatchHistoryStore (IBatchHistoryStore: Save/UpdateStatus/GetRecent/GetById batch runs with child datasets) in src/CdcExtractor.Infrastructure/StateStore/DapperBatchHistoryStore.cs
+- [X] T029 [P] Configure Serilog (structured JSON format, file sink with daily rolling, Windows Event Log sink for Error+Critical, enrichers for CorrelationId/BatchId/TableName) in src/CdcExtractor.Service/Logging/SerilogSetup.cs
 
 **Checkpoint**: Domain model, contracts, and state store infrastructure complete. All domain unit tests pass. User story implementation can begin.
 
