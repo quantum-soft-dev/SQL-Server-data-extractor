@@ -46,6 +46,23 @@ public sealed partial class CdcReader : ICdcReader
             : Lsn.Empty;
     }
 
+    public async Task<Lsn> IncrementLsnAsync(Lsn lsn, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(lsn);
+
+        await using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct).ConfigureAwait(false);
+
+        var result = await connection.QuerySingleAsync<byte[]?>(
+            new CommandDefinition("SELECT sys.fn_cdc_increment_lsn(@lsn);",
+                new { lsn = lsn.Value },
+                cancellationToken: ct))
+            .ConfigureAwait(false);
+
+        return result is { Length: 10 }
+            ? Lsn.From(result)
+            : Lsn.Empty;
+    }
+
     public async Task<Lsn> GetMinLsnAsync(string captureInstance, CancellationToken ct = default)
     {
         ValidateCaptureInstance(captureInstance);

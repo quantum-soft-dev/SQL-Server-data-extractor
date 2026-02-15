@@ -17,6 +17,7 @@ public class ExtractionOrchestratorTests
     private readonly IBatchHistoryStore _batchHistoryStore = Substitute.For<IBatchHistoryStore>();
     private readonly IDownstreamClient _downstreamClient = Substitute.For<IDownstreamClient>();
     private readonly ISnapshotService _snapshotService = Substitute.For<ISnapshotService>();
+    private readonly IDeltaService _deltaService = Substitute.For<IDeltaService>();
     private readonly ISchemaService _schemaService = Substitute.For<ISchemaService>();
     private readonly ILogger<ExtractionOrchestrator> _logger = Substitute.For<ILogger<ExtractionOrchestrator>>();
 
@@ -28,7 +29,7 @@ public class ExtractionOrchestratorTests
 
     private ExtractionOrchestrator CreateSut() =>
         new(_stateStore, _batchHistoryStore, _downstreamClient,
-            _snapshotService, _schemaService, _sqlConfig, _logger);
+            _snapshotService, _deltaService, _schemaService, _sqlConfig, _logger);
 
     private static TableState CreateTableState(string schema, string name) =>
         new(new TableIdentifier(schema, name), ExtractionMode.Snap);

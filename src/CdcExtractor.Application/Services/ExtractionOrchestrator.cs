@@ -16,7 +16,9 @@ public sealed class ExtractionOrchestrator
     private readonly IBatchHistoryStore _batchHistoryStore;
     private readonly IDownstreamClient _downstreamClient;
     private readonly ISnapshotService _snapshotService;
+    private readonly IDeltaService _deltaService;
     private readonly ISchemaService _schemaService;
+    private readonly IHeartbeatCoordinator? _heartbeat;
     private readonly SqlServerConfig _sqlConfig;
     private readonly ILogger<ExtractionOrchestrator> _logger;
 
@@ -25,14 +27,17 @@ public sealed class ExtractionOrchestrator
         IBatchHistoryStore batchHistoryStore,
         IDownstreamClient downstreamClient,
         ISnapshotService snapshotService,
+        IDeltaService deltaService,
         ISchemaService schemaService,
         SqlServerConfig sqlConfig,
-        ILogger<ExtractionOrchestrator> logger)
+        ILogger<ExtractionOrchestrator> logger,
+        IHeartbeatCoordinator? heartbeat = null)
     {
         ArgumentNullException.ThrowIfNull(stateStore);
         ArgumentNullException.ThrowIfNull(batchHistoryStore);
         ArgumentNullException.ThrowIfNull(downstreamClient);
         ArgumentNullException.ThrowIfNull(snapshotService);
+        ArgumentNullException.ThrowIfNull(deltaService);
         ArgumentNullException.ThrowIfNull(schemaService);
         ArgumentNullException.ThrowIfNull(sqlConfig);
         ArgumentNullException.ThrowIfNull(logger);
@@ -41,7 +46,9 @@ public sealed class ExtractionOrchestrator
         _batchHistoryStore = batchHistoryStore;
         _downstreamClient = downstreamClient;
         _snapshotService = snapshotService;
+        _deltaService = deltaService;
         _schemaService = schemaService;
+        _heartbeat = heartbeat;
         _sqlConfig = sqlConfig;
         _logger = logger;
     }
@@ -159,5 +166,150 @@ public sealed class ExtractionOrchestrator
             batch.Id, finalStatus, tablesSucceeded, tables.Count);
 
         return batch;
+    }
+
+    /// <summary>
+    /// Runs a DELTA batch: routes CDC-mode tables to DeltaService and
+    /// SNAP-mode tables to SnapshotService. Per-table errors do not stop the batch.
+    /// </summary>
+    public async Task<BatchRun> RunDeltaBatchAsync(
+        BatchTrigger trigger, CancellationToken ct = default)
+    {
+        var batch = BatchRun.Create(BatchType.Delta, trigger);
+
+        _logger.LogInformation(
+            "Starting DELTA batch {BatchId} triggered by {Trigger}",
+            batch.Id, trigger);
+
+        await _batchHistoryStore.SaveBatchAsync(batch, ct).ConfigureAwait(false);
+
+        var sqlServer = string.IsNullOrEmpty(_sqlConfig.Instance)
+            ? _sqlConfig.Server
+            : $"{_sqlConfig.Server}\\{_sqlConfig.Instance}";
+
+        var (remoteBatchId, leaseToken) = await _downstreamClient.CreateBatchAsync(
+            BatchType.Delta, sqlServer, _sqlConfig.Database, ct).ConfigureAwait(false);
+
+        batch.SetRemoteBatchId(remoteBatchId);
+        batch.SetLeaseToken(leaseToken);
+
+        // Start heartbeat to prevent batch TTL expiration
+        _heartbeat?.StartHeartbeat(remoteBatchId, leaseToken);
+
+        try
+        {
+            var tables = await _stateStore.GetAllTableStatesAsync(ct).ConfigureAwait(false);
+            var hasFailure = false;
+            long totalRows = 0;
+            long totalBytes = 0;
+            var tablesSucceeded = 0;
+
+            foreach (var tableState in tables)
+            {
+                ct.ThrowIfCancellationRequested();
+
+                try
+                {
+                    var manifest = await _schemaService.InspectAndUploadSchemaAsync(
+                        tableState.TableId, remoteBatchId, leaseToken, ct).ConfigureAwait(false);
+
+                    DatasetRun dataset;
+
+                    if (tableState.ExtractionMode == ExtractionMode.Snap)
+                    {
+                        // SNAP-mode tables always get full snapshots
+                        _logger.LogInformation(
+                            "Extracting snapshot for SNAP-mode table {Table} in batch {BatchId}",
+                            tableState.TableId.FullName, batch.Id);
+
+                        dataset = await _snapshotService.ExtractSnapshotAsync(
+                            tableState.TableId, remoteBatchId, leaseToken, manifest, ct)
+                            .ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        // CDC-mode tables get incremental delta extraction
+                        _logger.LogInformation(
+                            "Extracting delta for CDC-mode table {Table} in batch {BatchId}",
+                            tableState.TableId.FullName, batch.Id);
+
+                        dataset = await _deltaService.ExtractDeltaAsync(
+                            tableState, remoteBatchId, leaseToken, manifest, ct)
+                            .ConfigureAwait(false);
+                    }
+
+                    batch.AddDataset(dataset);
+
+                    totalRows += dataset.RowCount;
+                    totalBytes += dataset.BytesSent;
+                    tablesSucceeded++;
+
+                    _logger.LogInformation(
+                        "Extraction complete for {Table}: {Rows} rows, {Chunks} chunks, status {Status}",
+                        tableState.TableId.FullName, dataset.RowCount, dataset.ChunkCount, dataset.Status);
+                }
+                catch (Exception ex)
+                {
+                    hasFailure = true;
+
+                    var errorCode = tableState.ExtractionMode == ExtractionMode.Snap
+                        ? "SNAPSHOT_FAILED"
+                        : "DELTA_FAILED";
+                    var errorMessage = $"Extraction failed for {tableState.TableId.FullName}: {ex.Message}";
+
+                    var failedDataset = DatasetRun.Create(tableState.TableId, null, null);
+                    failedDataset.Abort(errorCode, errorMessage);
+                    batch.AddDataset(failedDataset);
+
+                    tableState.SetError(errorMessage);
+                    await _stateStore.UpsertTableStateAsync(tableState, ct).ConfigureAwait(false);
+
+                    _logger.LogError(ex,
+                        "Extraction failed for table {Table} in batch {BatchId}",
+                        tableState.TableId.FullName, batch.Id);
+
+                    try
+                    {
+                        await _downstreamClient.ReportErrorAsync(
+                            remoteBatchId, leaseToken, "TABLE", tableState.TableId.FullName,
+                            null, "ERROR", errorCode, errorMessage,
+                            isRetryable: false, isTerminal: false, ct).ConfigureAwait(false);
+                    }
+                    catch (Exception reportEx)
+                    {
+                        _logger.LogWarning(reportEx,
+                            "Failed to report error to downstream for table {Table}",
+                            tableState.TableId.FullName);
+                    }
+                }
+            }
+
+            var finalStatus = hasFailure ? BatchStatus.Failed : BatchStatus.Succeeded;
+            batch.Finish(finalStatus);
+
+            try
+            {
+                await _downstreamClient.FinishBatchAsync(
+                    remoteBatchId, leaseToken, finalStatus,
+                    tables.Count, tablesSucceeded, totalRows, totalBytes, ct).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to finish batch {BatchId} in downstream", batch.Id);
+            }
+
+            await _batchHistoryStore.UpdateBatchStatusAsync(
+                batch.Id, finalStatus, batch.FinishedAt, ct).ConfigureAwait(false);
+
+            _logger.LogInformation(
+                "DELTA batch {BatchId} finished with status {Status}: {Succeeded}/{Total} tables",
+                batch.Id, finalStatus, tablesSucceeded, tables.Count);
+
+            return batch;
+        }
+        finally
+        {
+            _heartbeat?.StopHeartbeat();
+        }
     }
 }

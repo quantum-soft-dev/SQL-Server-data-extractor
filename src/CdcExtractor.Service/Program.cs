@@ -6,6 +6,7 @@ using CdcExtractor.Infrastructure.Http;
 using CdcExtractor.Infrastructure.SqlServer;
 using CdcExtractor.Infrastructure.StateStore;
 using CdcExtractor.Service.Ipc;
+using CdcExtractor.Service.Workers;
 using Microsoft.Extensions.Options;
 using Serilog;
 
@@ -43,19 +44,27 @@ var tokenFilePath = Path.Combine(
 builder.Services.AddSingleton(new DpapiTokenStore(tokenFilePath));
 builder.Services.AddSingleton<ITokenProvider>(sp => sp.GetRequiredService<DpapiTokenStore>());
 
+builder.Services.AddTransient<TokenRefreshHandler>();
 builder.Services.AddHttpClient<IDownstreamClient, DownstreamClient>((sp, client) =>
 {
     var config = sp.GetRequiredService<DownstreamConfig>();
     client.BaseAddress = new Uri(config.BaseUrl);
-});
+}).AddHttpMessageHandler<TokenRefreshHandler>();
 
 // Application services
 builder.Services.AddSingleton<ChunkingService>();
 builder.Services.AddSingleton<ISchemaService, SchemaService>();
 builder.Services.AddSingleton<ISnapshotService, SnapshotService>();
+builder.Services.AddSingleton<IDeltaService, DeltaService>();
 builder.Services.AddSingleton<IDiagnosticsService, DiagnosticsService>();
 builder.Services.AddSingleton<CdcSetupService>();
 builder.Services.AddSingleton<ExtractionOrchestrator>();
+
+// Workers
+builder.Services.AddSingleton<HeartbeatWorker>();
+builder.Services.AddSingleton<IHeartbeatCoordinator>(sp => sp.GetRequiredService<HeartbeatWorker>());
+builder.Services.AddSingleton<SchedulerWorker>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<SchedulerWorker>());
 
 // IPC
 builder.Services.AddSingleton<ExtractorServiceRpc>();

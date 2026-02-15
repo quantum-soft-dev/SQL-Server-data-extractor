@@ -71,6 +71,26 @@ public sealed class TableState
         ErrorMessage = reason;
     }
 
+    /// <summary>
+    /// Advances the last processed LSN and sync time after a successful delta commit.
+    /// Can only be called when status is <see cref="BootstrapStatus.Complete"/>.
+    /// </summary>
+    public void AdvanceLsn(Lsn processedLsn, DateTimeOffset syncTime)
+    {
+        ArgumentNullException.ThrowIfNull(processedLsn);
+
+        if (BootstrapStatus != BootstrapStatus.Complete)
+        {
+            throw new InvalidOperationException(
+                $"Cannot advance LSN from status '{BootstrapStatus}'. " +
+                $"Expected '{BootstrapStatus.Complete}'.");
+        }
+
+        LastProcessedLsn = processedLsn;
+        LastSyncTime = syncTime;
+        ErrorMessage = null;
+    }
+
     /// <summary>Sets an error message on this table state.</summary>
     public void SetError(string message)
     {
