@@ -20,6 +20,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\CdcExtractor.Domain\CdcExtractor.Domain.csproj" />
     <ProjectReference Include="..\..\src\CdcExtractor.Application\CdcExtractor.Application.csproj" />
+    <ProjectReference Include="..\..\src\CdcExtractor.Contracts\CdcExtractor.Contracts.csproj" />
   </ItemGroup>
 
 </Project>

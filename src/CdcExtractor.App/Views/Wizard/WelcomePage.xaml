@@ -1,0 +1,89 @@
+<UserControl x:Class="CdcExtractor.App.Views.Wizard.WelcomePage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:CdcExtractor.App.ViewModels.Wizard"
+             d:DataContext="{d:DesignInstance vm:WelcomeViewModel}"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d">
+    <Grid Margin="32">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Title -->
+        <TextBlock Grid.Row="0"
+                   Text="Welcome to the CDC Extractor Setup Wizard"
+                   FontSize="24" FontWeight="Bold" Margin="0,0,0,8" />
+
+        <!-- Description -->
+        <TextBlock Grid.Row="1"
+                   Text="This wizard will guide you through configuring your SQL Server CDC data extraction pipeline. Before proceeding, review the environment checks below."
+                   TextWrapping="Wrap" FontSize="14" Foreground="#64748B" Margin="0,0,0,24" />
+
+        <!-- Environment Checks -->
+        <GroupBox Grid.Row="2" Header="Environment Checks" Padding="16" Margin="0,0,0,16">
+            <StackPanel>
+                <Grid Margin="0,0,0,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="180" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="Machine Name:" FontWeight="SemiBold" />
+                    <TextBlock Grid.Column="1" Text="{Binding MachineName}" />
+                </Grid>
+
+                <Grid Margin="0,0,0,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="180" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="Operating System:" FontWeight="SemiBold" />
+                    <TextBlock Grid.Column="1" Text="{Binding OsDescription}" TextWrapping="Wrap" />
+                </Grid>
+
+                <Grid Margin="0,0,0,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="180" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text=".NET Runtime:" FontWeight="SemiBold" />
+                    <TextBlock Grid.Column="1" Text="{Binding RuntimeVersion}" />
+                </Grid>
+
+                <Grid Margin="0,0,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="180" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="Windows OS:" FontWeight="SemiBold" />
+                    <TextBlock Grid.Column="1">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Text" Value="No" />
+                                <Setter Property="Foreground" Value="#DC2626" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsWindowsOs}" Value="True">
+                                        <Setter Property="Text" Value="Yes" />
+                                        <Setter Property="Foreground" Value="#16A34A" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </Grid>
+            </StackPanel>
+        </GroupBox>
+
+        <!-- Navigation -->
+        <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="Next"
+                    Command="{Binding Wizard.NextCommand}"
+                    Padding="24,8" FontSize="14" />
+        </StackPanel>
+    </Grid>
+</UserControl>

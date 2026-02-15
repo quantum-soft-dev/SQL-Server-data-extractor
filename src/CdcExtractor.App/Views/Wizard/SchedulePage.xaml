@@ -1,0 +1,85 @@
+<UserControl x:Class="CdcExtractor.App.Views.Wizard.SchedulePage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:CdcExtractor.App.ViewModels.Wizard"
+             d:DataContext="{d:DesignInstance vm:ScheduleViewModel}"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d">
+    <Grid Margin="32">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Title -->
+        <TextBlock Grid.Row="0"
+                   Text="Schedule"
+                   FontSize="24" FontWeight="Bold" Margin="0,0,0,8" />
+
+        <TextBlock Grid.Row="1"
+                   Text="Configure extraction schedules using cron expressions."
+                   FontSize="14" Foreground="#64748B" Margin="0,0,0,24" />
+
+        <!-- Schedule Fields -->
+        <StackPanel Grid.Row="2" MaxWidth="600" HorizontalAlignment="Left">
+            <!-- Timezone -->
+            <TextBlock Text="Timezone" FontWeight="SemiBold" Margin="0,0,0,4" />
+            <ComboBox ItemsSource="{Binding AvailableTimezones}"
+                      SelectedItem="{Binding Timezone}"
+                      Margin="0,0,0,16" Padding="6,4" MaxDropDownHeight="200" />
+
+            <!-- Prevent Parallel -->
+            <CheckBox Content="Prevent parallel runs"
+                      IsChecked="{Binding PreventParallelRuns}" Margin="0,0,0,20" />
+
+            <!-- Cron Expressions -->
+            <TextBlock Text="Cron Expressions" FontWeight="SemiBold" Margin="0,0,0,8" />
+
+            <!-- Add new expression -->
+            <Grid Margin="0,0,0,8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBox Text="{Binding NewCronExpression, UpdateSourceTrigger=PropertyChanged}"
+                         Padding="6,4" />
+                <Button Grid.Column="1" Content="Add"
+                        Command="{Binding AddCronExpressionCommand}"
+                        Padding="16,4" Margin="8,0,0,0" />
+            </Grid>
+
+            <TextBlock Text="Example: 0 */6 * * * (every 6 hours)"
+                       FontSize="12" Foreground="#94A3B8" Margin="0,0,0,12" />
+
+            <!-- Expression List -->
+            <ListBox ItemsSource="{Binding CronExpressions}"
+                     SelectedItem="{Binding SelectedCronExpression}"
+                     MinHeight="100" MaxHeight="200"
+                     Margin="0,0,0,8"
+                     BorderThickness="1" BorderBrush="#E2E8F0">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding}" FontFamily="Consolas" Padding="4,2" />
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+
+            <Button Content="Remove Selected"
+                    Command="{Binding RemoveCronExpressionCommand}"
+                    Padding="12,4" HorizontalAlignment="Left" />
+        </StackPanel>
+
+        <!-- Navigation -->
+        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="Back"
+                    Command="{Binding Wizard.BackCommand}"
+                    Padding="24,8" FontSize="14" Margin="0,0,8,0" />
+            <Button Content="Next"
+                    Command="{Binding Wizard.NextCommand}"
+                    Padding="24,8" FontSize="14" />
+        </StackPanel>
+    </Grid>
+</UserControl>
