@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using CdcExtractor.Contracts.Ipc;
 using CdcExtractor.Domain.Interfaces;
+using CdcExtractor.Service.Workers;
 using StreamJsonRpc;
 
 namespace CdcExtractor.Service.Ipc;
@@ -15,20 +16,29 @@ public sealed class ExtractorServiceRpc : IExtractorService
     private readonly IBatchHistoryStore _batchHistoryStore;
     private readonly IStateStore _stateStore;
     private readonly IDiagnosticsService _diagnosticsService;
+    private readonly LogBroadcaster _logBroadcaster;
+    private readonly SchedulerWorker _schedulerWorker;
     private readonly DateTimeOffset _startedAt = DateTimeOffset.UtcNow;
+    private readonly string _subscriberId = Guid.NewGuid().ToString("N");
 
     public ExtractorServiceRpc(
         IBatchHistoryStore batchHistoryStore,
         IStateStore stateStore,
-        IDiagnosticsService diagnosticsService)
+        IDiagnosticsService diagnosticsService,
+        LogBroadcaster logBroadcaster,
+        SchedulerWorker schedulerWorker)
     {
         ArgumentNullException.ThrowIfNull(batchHistoryStore);
         ArgumentNullException.ThrowIfNull(stateStore);
         ArgumentNullException.ThrowIfNull(diagnosticsService);
+        ArgumentNullException.ThrowIfNull(logBroadcaster);
+        ArgumentNullException.ThrowIfNull(schedulerWorker);
 
         _batchHistoryStore = batchHistoryStore;
         _stateStore = stateStore;
         _diagnosticsService = diagnosticsService;
+        _logBroadcaster = logBroadcaster;
+        _schedulerWorker = schedulerWorker;
     }
 
     [JsonRpcMethod("getStatus")]
@@ -36,12 +46,12 @@ public sealed class ExtractorServiceRpc : IExtractorService
     {
         var uptime = DateTimeOffset.UtcNow - _startedAt;
         var dto = new ServiceStatusDto(
-            IsRunning: true,
+            IsRunning: _schedulerWorker.IsRunning,
             CurrentBatchId: null,
             CurrentBatchType: null,
             CurrentBatchTrigger: null,
             CurrentBatchStartedAt: null,
-            NextScheduledRun: null,
+            NextScheduledRun: _schedulerWorker.GetNextRunTime(),
             ServiceUptime: $"PT{(int)uptime.TotalHours}H{uptime.Minutes}M",
             ServicePid: Environment.ProcessId);
 
@@ -152,21 +162,24 @@ public sealed class ExtractorServiceRpc : IExtractorService
     [JsonRpcMethod("subscribeLogs")]
     public Task<SubscribeResultDto> SubscribeLogsAsync(string minLevel, CancellationToken ct = default)
     {
-        // Stub — will be implemented in US3
+        // Register with LogBroadcaster using instance-scoped subscriber ID.
+        // The callback is a no-op for the MVP; full server→client streaming notifications
+        // will require JsonRpc instance plumbing in IpcServer (separate concern).
+        _logBroadcaster.Subscribe(_subscriberId, minLevel, _ => { });
         return Task.FromResult(new SubscribeResultDto(true));
     }
 
     [JsonRpcMethod("unsubscribeLogs")]
     public Task<UnsubscribeResultDto> UnsubscribeLogsAsync(CancellationToken ct = default)
     {
-        // Stub — will be implemented in US3
-        return Task.FromResult(new UnsubscribeResultDto(true));
+        var removed = _logBroadcaster.Unsubscribe(_subscriberId);
+        return Task.FromResult(new UnsubscribeResultDto(removed));
     }
 
     [JsonRpcMethod("getRecentLogs")]
     public Task<RecentLogsDto> GetRecentLogsAsync(int count, string minLevel, CancellationToken ct = default)
     {
-        // Stub — will be implemented in US3
-        return Task.FromResult(new RecentLogsDto([]));
+        var entries = _logBroadcaster.GetRecentLogs(count, minLevel);
+        return Task.FromResult(new RecentLogsDto(entries.ToList()));
     }
 }

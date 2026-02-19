@@ -7,18 +7,109 @@
         WindowStartupLocation="CenterScreen"
         Background="{StaticResource BackgroundBrush}">
     <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-        </Grid.RowDefinitions>
+        <!-- Wizard mode -->
+        <Grid x:Name="WizardPanel" Visibility="Collapsed">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
 
-        <!-- Wizard stepper at top -->
-        <Border Grid.Row="0" Padding="24,16" Background="{StaticResource SurfaceBrush}"
-                BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
-            <controls:WizardStepper x:Name="Stepper" />
-        </Border>
+            <!-- Wizard stepper at top -->
+            <Border Grid.Row="0" Padding="24,16" Background="{StaticResource SurfaceBrush}"
+                    BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
+                <controls:WizardStepper x:Name="Stepper" />
+            </Border>
 
-        <!-- Page content -->
-        <ContentControl Grid.Row="1" x:Name="MainContent" />
+            <!-- Wizard page content -->
+            <ContentControl Grid.Row="1" x:Name="WizardContent" />
+        </Grid>
+
+        <!-- Manager mode -->
+        <Grid x:Name="ManagerPanel" Visibility="Collapsed">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="220" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Sidebar -->
+            <Border Grid.Column="0" Background="{StaticResource SurfaceBrush}"
+                    BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,1,0">
+                <DockPanel>
+                    <!-- App title -->
+                    <Border DockPanel.Dock="Top" Padding="16,16,16,8"
+                            BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
+                        <StackPanel>
+                            <TextBlock Text="CDC Extractor"
+                                       FontSize="16" FontWeight="Bold"
+                                       Foreground="{StaticResource TextPrimaryBrush}" />
+                            <TextBlock Text="Management Console"
+                                       FontSize="11"
+                                       Foreground="{StaticResource TextMutedBrush}"
+                                       Margin="0,2,0,0" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Re-run wizard button at bottom -->
+                    <Border DockPanel.Dock="Bottom" Padding="12,8"
+                            BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0">
+                        <Button x:Name="RerunWizardButton" Content="Re-run Setup Wizard"
+                                Click="OnRerunWizardClick"
+                                Padding="8,6" FontSize="11"
+                                Background="Transparent"
+                                Foreground="{StaticResource TextSecondaryBrush}"
+                                BorderBrush="{StaticResource BorderBrush}"
+                                Cursor="Hand" />
+                    </Border>
+
+                    <!-- Navigation items -->
+                    <ListBox x:Name="NavList" SelectionChanged="OnNavSelectionChanged"
+                             Background="Transparent" BorderThickness="0"
+                             Padding="8,8,8,0">
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="Padding" Value="12,10" />
+                                <Setter Property="Margin" Value="0,2" />
+                                <Setter Property="Cursor" Value="Hand" />
+                                <Setter Property="FontSize" Value="13" />
+                                <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="ListBoxItem">
+                                            <Border x:Name="Bd" Padding="{TemplateBinding Padding}"
+                                                    CornerRadius="6" Background="Transparent">
+                                                <ContentPresenter />
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="Bd" Property="Background"
+                                                            Value="{StaticResource BackgroundBrush}" />
+                                                </Trigger>
+                                                <Trigger Property="IsSelected" Value="True">
+                                                    <Setter TargetName="Bd" Property="Background"
+                                                            Value="{StaticResource PrimaryLightBrush}" />
+                                                    <Setter Property="Foreground"
+                                                            Value="{StaticResource PrimaryBrush}" />
+                                                    <Setter Property="FontWeight" Value="SemiBold" />
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+
+                        <ListBoxItem Content="Dashboard" Tag="Dashboard" IsSelected="True" />
+                        <ListBoxItem Content="Runs" Tag="Runs" />
+                        <ListBoxItem Content="Tables" Tag="Tables" />
+                        <ListBoxItem Content="Diagnostics" Tag="Diagnostics" />
+                        <ListBoxItem Content="Settings" Tag="Settings" />
+                        <ListBoxItem Content="Logs" Tag="Logs" />
+                    </ListBox>
+                </DockPanel>
+            </Border>
+
+            <!-- Manager page content -->
+            <ContentControl Grid.Column="1" x:Name="ManagerContent" Margin="0" />
+        </Grid>
     </Grid>
 </Window>

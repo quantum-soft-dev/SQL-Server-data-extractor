@@ -6,6 +6,7 @@ using CdcExtractor.Infrastructure.Http;
 using CdcExtractor.Infrastructure.SqlServer;
 using CdcExtractor.Infrastructure.StateStore;
 using CdcExtractor.Service.Ipc;
+using CdcExtractor.Service.Logging;
 using CdcExtractor.Service.Workers;
 using Microsoft.Extensions.Options;
 using Serilog;
@@ -66,7 +67,9 @@ builder.Services.AddSingleton<IHeartbeatCoordinator>(sp => sp.GetRequiredService
 builder.Services.AddSingleton<SchedulerWorker>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<SchedulerWorker>());
 
-// IPC
+// IPC — create LogBroadcaster as a shared instance for both DI and Serilog sink
+var logBroadcaster = new LogBroadcaster();
+builder.Services.AddSingleton(logBroadcaster);
 builder.Services.AddSingleton<ExtractorServiceRpc>();
 builder.Services.AddHostedService<IpcServer>();
 
@@ -85,7 +88,8 @@ builder.Services.AddSerilog(loggerConfig =>
             outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}")
         .WriteTo.EventLog(
             source: "SQL CDC Extractor",
-            restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Error);
+            restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Error)
+        .WriteTo.Sink(new IpcLogSink(logBroadcaster));
 });
 
 var host = builder.Build();
