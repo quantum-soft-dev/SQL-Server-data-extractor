@@ -138,10 +138,12 @@ public sealed class ExtractorServiceRpc : IExtractorService
     }
 
     [JsonRpcMethod("triggerRun")]
-    public Task<TriggerRunResultDto> TriggerRunAsync(CancellationToken ct = default)
+    public async Task<TriggerRunResultDto> TriggerRunAsync(CancellationToken ct = default)
     {
-        // Stub — will be implemented in US5
-        return Task.FromResult(new TriggerRunResultDto(false, null, "Manual trigger not yet implemented"));
+        var (accepted, batchId, reason) = await _schedulerWorker
+            .TriggerManualRunAsync(ct).ConfigureAwait(false);
+
+        return new TriggerRunResultDto(accepted, batchId, reason);
     }
 
     [JsonRpcMethod("runDiagnostics")]

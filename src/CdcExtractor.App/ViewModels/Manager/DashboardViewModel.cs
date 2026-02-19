@@ -43,6 +43,15 @@ public partial class DashboardViewModel : ObservableObject
     [ObservableProperty]
     private string? _errorMessage;
 
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanRunNow))]
+    private bool _isBatchActive;
+
+    [ObservableProperty]
+    private string? _runNowMessage;
+
+    public bool CanRunNow => !IsBatchActive;
+
     public ObservableCollection<BatchSummaryDto> RecentBatches { get; } = [];
 
     public DashboardViewModel(IExtractorService service)
@@ -66,6 +75,7 @@ public partial class DashboardViewModel : ObservableObject
             CurrentBatchType = status.CurrentBatchType;
             CurrentBatchTrigger = status.CurrentBatchTrigger;
             NextScheduledRun = status.NextScheduledRun;
+            IsBatchActive = status.CurrentBatchId is not null;
 
             if (status.CurrentBatchStartedAt.HasValue)
             {
@@ -97,6 +107,30 @@ public partial class DashboardViewModel : ObservableObject
             {
                 LastBatchDuration = last.FinishedAt.Value - last.StartedAt;
             }
+        }
+    }
+
+    [RelayCommand]
+    private async Task RunNowAsync(CancellationToken ct = default)
+    {
+        try
+        {
+            RunNowMessage = null;
+            var result = await _service.TriggerRunAsync(ct).ConfigureAwait(false);
+
+            if (result.Accepted)
+            {
+                RunNowMessage = $"Batch started: {result.BatchId}";
+                await LoadStatusAsync(ct).ConfigureAwait(false);
+            }
+            else
+            {
+                RunNowMessage = result.Reason ?? "A batch is already running";
+            }
+        }
+        catch (Exception ex)
+        {
+            RunNowMessage = $"Failed to trigger run: {ex.Message}";
         }
     }
 

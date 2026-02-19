@@ -17,19 +17,42 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <!-- Header row with title and refresh button -->
+        <!-- Header row with title, Run Now, and refresh button -->
         <DockPanel Grid.Row="0" Margin="0,0,0,16">
             <TextBlock Text="Dashboard"
                        Style="{StaticResource H1}"
                        DockPanel.Dock="Left"
                        VerticalAlignment="Center" />
-            <Button Content="Refresh"
-                    Style="{StaticResource SecondaryButton}"
-                    Command="{Binding RefreshCommand}"
-                    DockPanel.Dock="Right"
-                    HorizontalAlignment="Right"
-                    VerticalAlignment="Center" />
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal"
+                        HorizontalAlignment="Right" VerticalAlignment="Center">
+                <Button Content="Run Now"
+                        Style="{StaticResource PrimaryButton}"
+                        Command="{Binding RunNowCommand}"
+                        IsEnabled="{Binding CanRunNow}"
+                        Margin="0,0,8,0" />
+                <Button Content="Refresh"
+                        Style="{StaticResource SecondaryButton}"
+                        Command="{Binding RefreshCommand}" />
+            </StackPanel>
         </DockPanel>
+
+        <!-- Run Now feedback message -->
+        <Border Grid.Row="0" VerticalAlignment="Bottom" Margin="0,0,0,-8"
+                HorizontalAlignment="Right">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Visibility" Value="Visible" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding RunNowMessage}" Value="{x:Null}">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <TextBlock Text="{Binding RunNowMessage}"
+                       Style="{StaticResource Caption}"
+                       Foreground="{StaticResource TextSecondaryBrush}" />
+        </Border>
 
         <!-- Top: Service Status Card -->
         <Border Grid.Row="1" Style="{StaticResource Card}" Margin="0,0,0,16">

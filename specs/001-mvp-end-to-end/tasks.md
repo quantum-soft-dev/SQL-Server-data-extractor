@@ -242,12 +242,12 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T101 [P] [US5] Write unit tests for manual run trigger (mock SchedulerWorker lock state, verify: triggerRun accepted when no batch running + returns batchId, triggerRun rejected when batch in progress + returns reason, triggered batch has trigger MANUAL) in tests/CdcExtractor.Service.Tests/SchedulerWorkerTests.cs (extend)
+- [X] T101 [P] [US5] Write unit tests for manual run trigger (mock SchedulerWorker lock state, verify: triggerRun accepted when no batch running + returns batchId, triggerRun rejected when batch in progress + returns reason, triggered batch has trigger MANUAL) in tests/CdcExtractor.Service.Tests/SchedulerWorkerTests.cs (extend)
 
 ### Implementation for User Story 5
 
-- [ ] T102 [US5] Implement triggerRun in ExtractorServiceRpc (check single-instance SemaphoreSlim, start batch via ExtractionOrchestrator with BatchTrigger.Manual, return accepted/rejected response per ipc-contract.md) and add TriggerManualRunAsync to SchedulerWorker in src/CdcExtractor.Service/Ipc/ExtractorServiceRpc.cs and src/CdcExtractor.Service/Workers/SchedulerWorker.cs
-- [ ] T103 [US5] Add "Run Now" button to DashboardPage (disabled when batch is active per getBatchProgress, enabled when idle, click calls IpcClient.triggerRun, show success toast or "already running" message) in src/CdcExtractor.App/Views/Manager/DashboardPage.xaml and src/CdcExtractor.App/ViewModels/Manager/DashboardViewModel.cs
+- [X] T102 [US5] Implement triggerRun in ExtractorServiceRpc (check single-instance SemaphoreSlim, start batch via ExtractionOrchestrator with BatchTrigger.Manual, return accepted/rejected response per ipc-contract.md) and add TriggerManualRunAsync to SchedulerWorker in src/CdcExtractor.Service/Ipc/ExtractorServiceRpc.cs and src/CdcExtractor.Service/Workers/SchedulerWorker.cs
+- [X] T103 [US5] Add "Run Now" button to DashboardPage (disabled when batch is active per getBatchProgress, enabled when idle, click calls IpcClient.triggerRun, show success toast or "already running" message) in src/CdcExtractor.App/Views/Manager/DashboardPage.xaml and src/CdcExtractor.App/ViewModels/Manager/DashboardViewModel.cs
 
 **Checkpoint**: Manual runs work alongside scheduled runs. Single-instance lock prevents conflicts. Manual batch shows trigger MANUAL in Runs list.
 

@@ -276,4 +276,28 @@ public class SchedulerWorkerTests
         result1.Accepted.Should().BeTrue();
         result2.Accepted.Should().BeTrue();
     }
+
+    // ---------------------------------------------------------------
+    // TriggerManualRunAsync — trigger type verification
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public async Task TriggerManualRunAsync_UsesBatchTriggerManual()
+    {
+        _stateStore.GetAllTableStatesAsync(Arg.Any<CancellationToken>())
+            .Returns(new List<Domain.Entities.TableState>());
+
+        _downstreamClient.CreateBatchAsync(
+                Arg.Any<BatchType>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(("batch-1", "lease-abc"));
+
+        var sut = CreateSut();
+
+        await sut.TriggerManualRunAsync(CancellationToken.None);
+
+        // Verify the batch was saved with Manual trigger via the batch history store
+        await _batchHistoryStore.Received(1).SaveBatchAsync(
+            Arg.Is<Domain.Entities.BatchRun>(b => b.Trigger == BatchTrigger.Manual),
+            Arg.Any<CancellationToken>());
+    }
 }

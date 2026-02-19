@@ -234,4 +234,105 @@ public class DashboardViewModelTests
         sut.ErrorMessage.Should().Contain("Pipe broken");
         sut.IsServiceRunning.Should().BeFalse();
     }
+
+    // ---------------------------------------------------------------
+    // 9. RunNowCommand — accepted when idle
+    // ---------------------------------------------------------------
+    [Fact]
+    public async Task RunNowAsync_WhenAccepted_SetsRunNowMessageWithBatchId()
+    {
+        // Arrange
+        _service.TriggerRunAsync(Arg.Any<CancellationToken>())
+            .Returns(new TriggerRunResultDto(true, "batch-new", null));
+        _service.GetStatusAsync(Arg.Any<CancellationToken>())
+            .Returns(MakeStatus(currentBatchId: "batch-new"));
+
+        var sut = CreateSut();
+
+        // Act
+        await sut.RunNowCommand.ExecuteAsync(null);
+
+        // Assert
+        sut.RunNowMessage.Should().Contain("batch-new");
+    }
+
+    // ---------------------------------------------------------------
+    // 10. RunNowCommand — rejected when batch running
+    // ---------------------------------------------------------------
+    [Fact]
+    public async Task RunNowAsync_WhenRejected_SetsReasonMessage()
+    {
+        // Arrange
+        _service.TriggerRunAsync(Arg.Any<CancellationToken>())
+            .Returns(new TriggerRunResultDto(false, null, "A batch is already running"));
+
+        var sut = CreateSut();
+
+        // Act
+        await sut.RunNowCommand.ExecuteAsync(null);
+
+        // Assert
+        sut.RunNowMessage.Should().Contain("already running");
+    }
+
+    // ---------------------------------------------------------------
+    // 11. RunNowCommand — handles exception
+    // ---------------------------------------------------------------
+    [Fact]
+    public async Task RunNowAsync_WhenServiceThrows_SetsFailureMessage()
+    {
+        // Arrange
+        _service.TriggerRunAsync(Arg.Any<CancellationToken>())
+            .ThrowsAsync(new InvalidOperationException("Connection lost"));
+
+        var sut = CreateSut();
+
+        // Act
+        await sut.RunNowCommand.ExecuteAsync(null);
+
+        // Assert
+        sut.RunNowMessage.Should().Contain("Connection lost");
+    }
+
+    // ---------------------------------------------------------------
+    // 12. CanRunNow — reflects IsBatchActive state
+    // ---------------------------------------------------------------
+    [Fact]
+    public async Task CanRunNow_IsFalse_WhenBatchIsActive()
+    {
+        // Arrange
+        var status = MakeStatus(isRunning: true, currentBatchId: "batch-42");
+        _service.GetStatusAsync(Arg.Any<CancellationToken>()).Returns(status);
+
+        var sut = CreateSut();
+
+        // Act
+        await sut.LoadStatusCommand.ExecuteAsync(null);
+
+        // Assert
+        sut.IsBatchActive.Should().BeTrue();
+        sut.CanRunNow.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task CanRunNow_IsTrue_WhenIdle()
+    {
+        // Arrange
+        var status = MakeStatus(
+            isRunning: false,
+            currentBatchId: null,
+            currentBatchType: null,
+            currentBatchTrigger: null,
+            useDefaults: false);
+        _service.GetStatusAsync(Arg.Any<CancellationToken>()).Returns(status);
+
+        var sut = CreateSut();
+
+        // Act
+        await sut.LoadStatusCommand.ExecuteAsync(null);
+
+        // Assert
+        sut.IsBatchActive.Should().BeFalse();
+        sut.CanRunNow.Should().BeTrue();
+    }
 }
