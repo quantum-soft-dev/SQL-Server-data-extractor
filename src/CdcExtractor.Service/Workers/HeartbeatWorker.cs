@@ -113,7 +113,10 @@ public sealed class HeartbeatWorker : IHeartbeatCoordinator, IDisposable
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Heartbeat failed for batch {BatchId}", _batchId);
+                _logger.LogWarning(ex,
+                    "Heartbeat failed for batch {BatchId}. " +
+                    "Will retry in {Interval}s. If persistent, check downstream connectivity.",
+                    _batchId, _intervalSeconds);
             }
         }
 

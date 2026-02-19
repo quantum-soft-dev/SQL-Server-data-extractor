@@ -50,7 +50,8 @@ public sealed class DeltaService : IDeltaService
         // from_lsn = increment(last_processed_lsn) — exclusive boundary per R-001
         var captureInstance = tableState.CaptureInstance
             ?? throw new InvalidOperationException(
-                $"Table {tableState.TableId.FullName} has no capture instance configured.");
+                $"Table {tableState.TableId.FullName} has no capture instance configured. " +
+                "Enable CDC on this table using EXEC sys.sp_cdc_enable_table or re-run the setup wizard.");
 
         var fromLsn = await _cdcReader.IncrementLsnAsync(tableState.LastProcessedLsn, ct)
             .ConfigureAwait(false);

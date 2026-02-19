@@ -100,8 +100,8 @@ public sealed class SchedulerWorker : BackgroundService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Manual batch run failed");
-            return (true, null, $"Batch failed: {ex.Message}");
+            _logger.LogError(ex, "Manual batch run failed: {ErrorType}", ex.GetType().Name);
+            return (true, null, $"Manual batch failed ({ex.GetType().Name}): {ex.Message}");
         }
         finally
         {
@@ -172,7 +172,10 @@ public sealed class SchedulerWorker : BackgroundService
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Scheduled extraction batch failed");
+                _logger.LogError(ex,
+                    "Scheduled extraction batch failed ({ErrorType}). " +
+                    "Next scheduled run will retry automatically.",
+                    ex.GetType().Name);
             }
             finally
             {

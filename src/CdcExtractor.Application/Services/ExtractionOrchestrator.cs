@@ -1,6 +1,7 @@
 using CdcExtractor.Contracts.Config;
 using CdcExtractor.Domain.Entities;
 using CdcExtractor.Domain.Enums;
+using CdcExtractor.Domain.Exceptions;
 using CdcExtractor.Domain.Interfaces;
 using Microsoft.Extensions.Logging;
 
@@ -110,12 +111,33 @@ public sealed class ExtractionOrchestrator
                     "Snapshot complete for {Table}: {Rows} rows, {Chunks} chunks",
                     tableState.TableId.FullName, dataset.RowCount, dataset.ChunkCount);
             }
+            catch (Exception ex) when (IsBatchLevelError(ex))
+            {
+                // Batch-level error: downstream unreachable or lease conflict — stop entire batch
+                var batchStatus = IsLeaseConflict(ex) ? BatchStatus.Aborted : BatchStatus.Failed;
+
+                _logger.LogError(ex,
+                    "Batch-level error ({ErrorType}) during snapshot of {Table} in batch {BatchId}. " +
+                    "Stopping batch with status {Status}. " +
+                    "Check downstream service connectivity and verify single-instance deployment.",
+                    ex.GetType().Name, tableState.TableId.FullName, batch.Id, batchStatus);
+
+                hasFailure = true;
+                batch.Finish(batchStatus);
+
+                await FinishBatchSafeAsync(batch, remoteBatchId, leaseToken, batchStatus,
+                    tables.Count, tablesSucceeded, totalRows, totalBytes, ct).ConfigureAwait(false);
+
+                return batch;
+            }
             catch (Exception ex)
             {
+                // Table-level error: skip table, continue with remaining tables
                 hasFailure = true;
 
                 var errorCode = "SNAPSHOT_FAILED";
-                var errorMessage = $"Snapshot failed for {tableState.TableId.FullName}: {ex.Message}";
+                var errorMessage = $"Snapshot failed for table {tableState.TableId.FullName} in batch {batch.Id}: " +
+                    $"{ex.Message}. Verify the table exists, is readable, and CDC is enabled.";
 
                 var failedDataset = DatasetRun.Create(tableState.TableId, null, null);
                 failedDataset.Abort(errorCode, errorMessage);
@@ -125,7 +147,8 @@ public sealed class ExtractionOrchestrator
                 await _stateStore.UpsertTableStateAsync(tableState, ct).ConfigureAwait(false);
 
                 _logger.LogError(ex,
-                    "Snapshot failed for table {Table} in batch {BatchId}",
+                    "Table-level error during snapshot of {Table} in batch {BatchId}. " +
+                    "Skipping table; remaining tables will continue.",
                     tableState.TableId.FullName, batch.Id);
 
                 try
@@ -138,8 +161,9 @@ public sealed class ExtractionOrchestrator
                 catch (Exception reportEx)
                 {
                     _logger.LogWarning(reportEx,
-                        "Failed to report error to downstream for table {Table}",
-                        tableState.TableId.FullName);
+                        "Failed to report error to downstream for table {Table} in batch {BatchId}. " +
+                        "Error will be retried on next batch run.",
+                        tableState.TableId.FullName, batch.Id);
                 }
             }
         }
@@ -147,23 +171,8 @@ public sealed class ExtractionOrchestrator
         var finalStatus = hasFailure ? BatchStatus.Failed : BatchStatus.Succeeded;
         batch.Finish(finalStatus);
 
-        try
-        {
-            await _downstreamClient.FinishBatchAsync(
-                remoteBatchId, leaseToken, finalStatus,
-                tables.Count, tablesSucceeded, totalRows, totalBytes, ct).ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to finish batch {BatchId} in downstream", batch.Id);
-        }
-
-        await _batchHistoryStore.UpdateBatchStatusAsync(
-            batch.Id, finalStatus, batch.FinishedAt, ct).ConfigureAwait(false);
-
-        _logger.LogInformation(
-            "Batch {BatchId} finished with status {Status}: {Succeeded}/{Total} tables",
-            batch.Id, finalStatus, tablesSucceeded, tables.Count);
+        await FinishBatchSafeAsync(batch, remoteBatchId, leaseToken, finalStatus,
+            tables.Count, tablesSucceeded, totalRows, totalBytes, ct).ConfigureAwait(false);
 
         return batch;
     }
@@ -171,6 +180,7 @@ public sealed class ExtractionOrchestrator
     /// <summary>
     /// Runs a DELTA batch: routes CDC-mode tables to DeltaService and
     /// SNAP-mode tables to SnapshotService. Per-table errors do not stop the batch.
+    /// Batch-level errors (downstream unreachable, lease conflict) stop the entire batch.
     /// </summary>
     public async Task<BatchRun> RunDeltaBatchAsync(
         BatchTrigger trigger, CancellationToken ct = default)
@@ -284,14 +294,36 @@ public sealed class ExtractionOrchestrator
                         "Extraction complete for {Table}: {Rows} rows, {Chunks} chunks, status {Status}",
                         tableState.TableId.FullName, dataset.RowCount, dataset.ChunkCount, dataset.Status);
                 }
+                catch (Exception ex) when (IsBatchLevelError(ex))
+                {
+                    // Batch-level error: downstream unreachable or lease conflict — stop entire batch
+                    var batchStatus = IsLeaseConflict(ex) ? BatchStatus.Aborted : BatchStatus.Failed;
+
+                    _logger.LogError(ex,
+                        "Batch-level error ({ErrorType}) during extraction of {Table} in batch {BatchId}. " +
+                        "Stopping batch with status {Status}. " +
+                        "Check downstream service connectivity and verify single-instance deployment.",
+                        ex.GetType().Name, tableState.TableId.FullName, batch.Id, batchStatus);
+
+                    hasFailure = true;
+                    batch.Finish(batchStatus);
+
+                    await FinishBatchSafeAsync(batch, remoteBatchId, leaseToken, batchStatus,
+                        tables.Count, tablesSucceeded, totalRows, totalBytes, ct).ConfigureAwait(false);
+
+                    return batch;
+                }
                 catch (Exception ex)
                 {
+                    // Table-level error: skip table, continue with remaining tables
                     hasFailure = true;
 
                     var errorCode = tableState.ExtractionMode == ExtractionMode.Snap
                         ? "SNAPSHOT_FAILED"
                         : "DELTA_FAILED";
-                    var errorMessage = $"Extraction failed for {tableState.TableId.FullName}: {ex.Message}";
+                    var errorMessage = $"{errorCode} for table {tableState.TableId.FullName} " +
+                        $"(mode: {tableState.ExtractionMode}) in batch {batch.Id}: {ex.Message}. " +
+                        "Verify table permissions, CDC status, and network connectivity.";
 
                     var failedDataset = DatasetRun.Create(tableState.TableId, null, null);
                     failedDataset.Abort(errorCode, errorMessage);
@@ -301,8 +333,9 @@ public sealed class ExtractionOrchestrator
                     await _stateStore.UpsertTableStateAsync(tableState, ct).ConfigureAwait(false);
 
                     _logger.LogError(ex,
-                        "Extraction failed for table {Table} in batch {BatchId}",
-                        tableState.TableId.FullName, batch.Id);
+                        "Table-level error during {Mode} extraction of {Table} in batch {BatchId}. " +
+                        "Skipping table; remaining tables will continue.",
+                        tableState.ExtractionMode, tableState.TableId.FullName, batch.Id);
 
                     try
                     {
@@ -314,8 +347,9 @@ public sealed class ExtractionOrchestrator
                     catch (Exception reportEx)
                     {
                         _logger.LogWarning(reportEx,
-                            "Failed to report error to downstream for table {Table}",
-                            tableState.TableId.FullName);
+                            "Failed to report error to downstream for table {Table} in batch {BatchId}. " +
+                            "Error will be retried on next batch run.",
+                            tableState.TableId.FullName, batch.Id);
                     }
                 }
             }
@@ -323,23 +357,8 @@ public sealed class ExtractionOrchestrator
             var finalStatus = hasFailure ? BatchStatus.Failed : BatchStatus.Succeeded;
             batch.Finish(finalStatus);
 
-            try
-            {
-                await _downstreamClient.FinishBatchAsync(
-                    remoteBatchId, leaseToken, finalStatus,
-                    tables.Count, tablesSucceeded, totalRows, totalBytes, ct).ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to finish batch {BatchId} in downstream", batch.Id);
-            }
-
-            await _batchHistoryStore.UpdateBatchStatusAsync(
-                batch.Id, finalStatus, batch.FinishedAt, ct).ConfigureAwait(false);
-
-            _logger.LogInformation(
-                "DELTA batch {BatchId} finished with status {Status}: {Succeeded}/{Total} tables",
-                batch.Id, finalStatus, tablesSucceeded, tables.Count);
+            await FinishBatchSafeAsync(batch, remoteBatchId, leaseToken, finalStatus,
+                tables.Count, tablesSucceeded, totalRows, totalBytes, ct).ConfigureAwait(false);
 
             return batch;
         }
@@ -347,5 +366,48 @@ public sealed class ExtractionOrchestrator
         {
             _heartbeat?.StopHeartbeat();
         }
+    }
+
+    /// <summary>
+    /// Determines whether an exception is a batch-level error that should stop the entire batch.
+    /// Batch-level: downstream unreachable (HttpRequestException), lease conflict (SinkUploadException with 409).
+    /// Table-level (all others): permission denied, CDC disabled, SQL errors — skip table, continue.
+    /// </summary>
+    private static bool IsBatchLevelError(Exception ex) =>
+        ex is HttpRequestException ||
+        IsLeaseConflict(ex) ||
+        (ex is SinkUploadException { HttpStatusCode: >= 500 });
+
+    /// <summary>
+    /// Returns true if the exception represents a 409 lease conflict from the downstream API.
+    /// </summary>
+    private static bool IsLeaseConflict(Exception ex) =>
+        ex is SinkUploadException { HttpStatusCode: 409 };
+
+    /// <summary>
+    /// Safely finishes a batch in downstream and local history, logging any errors.
+    /// </summary>
+    private async Task FinishBatchSafeAsync(
+        BatchRun batch, string remoteBatchId, string leaseToken, BatchStatus status,
+        int tablesTotal, int tablesSucceeded, long totalRows, long totalBytes,
+        CancellationToken ct)
+    {
+        try
+        {
+            await _downstreamClient.FinishBatchAsync(
+                remoteBatchId, leaseToken, status,
+                tablesTotal, tablesSucceeded, totalRows, totalBytes, ct).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to finish batch {BatchId} in downstream", batch.Id);
+        }
+
+        await _batchHistoryStore.UpdateBatchStatusAsync(
+            batch.Id, status, batch.FinishedAt, ct).ConfigureAwait(false);
+
+        _logger.LogInformation(
+            "Batch {BatchId} finished with status {Status}: {Succeeded}/{Total} tables",
+            batch.Id, status, tablesSucceeded, tablesTotal);
     }
 }

@@ -1,4 +1,6 @@
 using System.IO.Pipes;
+using System.Security.AccessControl;
+using System.Security.Principal;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using StreamJsonRpc;
@@ -8,6 +10,7 @@ namespace CdcExtractor.Service.Ipc;
 /// <summary>
 /// Hosts a Named Pipe server for JSON-RPC communication with the WPF management app.
 /// Listens on pipe "SQLExtractorIPC" and dispatches calls to <see cref="ExtractorServiceRpc"/>.
+/// Pipe access is restricted via ACL to the service account and the interactive user group.
 /// </summary>
 public sealed class IpcServer : BackgroundService
 {
@@ -50,12 +53,17 @@ public sealed class IpcServer : BackgroundService
 
     private async Task AcceptClientAsync(CancellationToken ct)
     {
-        var pipeServer = new NamedPipeServerStream(
+        var pipeSecurity = CreatePipeSecurity();
+
+        var pipeServer = NamedPipeServerStreamAcl.Create(
             PipeName,
             PipeDirection.InOut,
             NamedPipeServerStream.MaxAllowedServerInstances,
             PipeTransmissionMode.Byte,
-            PipeOptions.Asynchronous);
+            PipeOptions.Asynchronous,
+            inBufferSize: 0,
+            outBufferSize: 0,
+            pipeSecurity);
 
         try
         {
@@ -71,6 +79,35 @@ public sealed class IpcServer : BackgroundService
             await pipeServer.DisposeAsync().ConfigureAwait(false);
             throw;
         }
+    }
+
+    /// <summary>
+    /// Creates a <see cref="PipeSecurity"/> ACL that restricts pipe access to:
+    /// 1. The service account (current process identity) — full control
+    /// 2. The Interactive Users group — read/write (allows the WPF app to connect)
+    /// All other accounts are denied access.
+    /// </summary>
+    private PipeSecurity CreatePipeSecurity()
+    {
+        var security = new PipeSecurity();
+
+        // Grant the service process identity full control
+        var serviceIdentity = WindowsIdentity.GetCurrent().Owner
+            ?? WindowsIdentity.GetCurrent().User!;
+        security.AddAccessRule(new PipeAccessRule(
+            serviceIdentity,
+            PipeAccessRights.FullControl,
+            AccessControlType.Allow));
+
+        // Grant interactive users (local logon sessions) read/write access
+        // so the WPF management app can connect when run by an operator
+        var interactiveUsers = new SecurityIdentifier(WellKnownSidType.InteractiveSid, null);
+        security.AddAccessRule(new PipeAccessRule(
+            interactiveUsers,
+            PipeAccessRights.ReadWrite,
+            AccessControlType.Allow));
+
+        return security;
     }
 
     private async Task HandleClientAsync(NamedPipeServerStream pipeServer, CancellationToken ct)

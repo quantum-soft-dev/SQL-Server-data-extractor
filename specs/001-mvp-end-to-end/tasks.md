@@ -257,12 +257,12 @@
 
 **Purpose**: Error handling hardening, security, performance, and final validation across all user stories
 
-- [ ] T104 [P] Implement global exception handling in Service host (unhandled exception logging to Serilog, graceful shutdown on fatal errors, write Critical events to Windows Event Log) in src/CdcExtractor.Service/Program.cs
-- [ ] T105 [P] Add Polly retry policies for SQL Server transient faults (deadlocks SqlException 1205, timeouts SqlException -2, connection drops) to SqlConnectionFactory as shared retry policy for all Dapper calls in src/CdcExtractor.Infrastructure/SqlServer/SqlConnectionFactory.cs
-- [ ] T106 [P] Implement error classification in ExtractionOrchestrator: table-level errors (permission denied, CDC disabled) skip table and continue batch, batch-level errors (downstream unreachable, lease conflict) stop entire batch, set batch status FAILED vs ABORTED accordingly in src/CdcExtractor.Application/Services/ExtractionOrchestrator.cs
-- [ ] T107 [P] Add Named Pipe ACL security (restrict pipe access to service account SID + configured Windows user/group SID, deny all others) to IpcServer in src/CdcExtractor.Service/Ipc/IpcServer.cs
-- [ ] T108 Validate all error messages are actionable per FR-036 and FR-041: every error includes table name, batch ID, LSN range (where applicable), human-readable description, and remediation hint — audit across all services and UI
-- [ ] T109 Run quickstart.md validation: dotnet build src/CdcExtractor.sln succeeds, dotnet test tests/ all pass, service starts in console mode (--console), WPF app launches to wizard on first run
+- [X] T104 [P] Implement global exception handling in Service host (unhandled exception logging to Serilog, graceful shutdown on fatal errors, write Critical events to Windows Event Log) in src/CdcExtractor.Service/Program.cs
+- [X] T105 [P] Add Polly retry policies for SQL Server transient faults (deadlocks SqlException 1205, timeouts SqlException -2, connection drops) to SqlConnectionFactory as shared retry policy for all Dapper calls in src/CdcExtractor.Infrastructure/SqlServer/SqlConnectionFactory.cs
+- [X] T106 [P] Implement error classification in ExtractionOrchestrator: table-level errors (permission denied, CDC disabled) skip table and continue batch, batch-level errors (downstream unreachable, lease conflict) stop entire batch, set batch status FAILED vs ABORTED accordingly in src/CdcExtractor.Application/Services/ExtractionOrchestrator.cs
+- [X] T107 [P] Add Named Pipe ACL security (restrict pipe access to service account SID + configured Windows user/group SID, deny all others) to IpcServer in src/CdcExtractor.Service/Ipc/IpcServer.cs
+- [X] T108 Validate all error messages are actionable per FR-036 and FR-041: every error includes table name, batch ID, LSN range (where applicable), human-readable description, and remediation hint — audit across all services and UI
+- [X] T109 Run quickstart.md validation: dotnet build src/CdcExtractor.sln succeeds, dotnet test tests/ all pass, service starts in console mode (--console), WPF app launches to wizard on first run
 
 ---
 

@@ -192,20 +192,35 @@ public sealed class DownstreamClient : IDownstreamClient
     private async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
     {
         var response = await _httpClient.SendAsync(request, ct).ConfigureAwait(false);
+        var statusCode = (int)response.StatusCode;
 
         if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
         {
             throw new SinkUploadException(
-                null, null, (int)response.StatusCode,
-                "Lease conflict: batch has been superseded by another instance.");
+                null, null, statusCode,
+                "Lease conflict (409): batch has been superseded by another instance. " +
+                "Another extractor may be running against the same source. " +
+                "Verify single-instance deployment.");
         }
 
         if (!response.IsSuccessStatusCode)
         {
             var errorBody = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+            var classification = statusCode switch
+            {
+                400 => "Validation error (non-retryable). Check request payload.",
+                401 => "Authentication failed. Token may have expired or been revoked.",
+                403 => "Forbidden. Verify the extractor client has the required permissions.",
+                404 => "Resource not found. Verify the downstream API base URL and resource IDs.",
+                429 => "Rate limited (transient). Request will be retried automatically.",
+                >= 500 and < 600 => "Server error (transient). Downstream service may be temporarily unavailable.",
+                _ => "Unexpected error.",
+            };
+
             throw new SinkUploadException(
-                null, null, (int)response.StatusCode,
-                $"Downstream API returned {(int)response.StatusCode}: {errorBody}");
+                null, null, statusCode,
+                $"Downstream API {request.Method} {request.RequestUri?.AbsolutePath} returned {statusCode}: " +
+                $"{classification} Response: {errorBody}");
         }
 
         return response;
