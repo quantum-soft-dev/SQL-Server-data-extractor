@@ -26,66 +26,132 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Gemini Code Review
-        uses: sshnaidm/gemini-code-review-action@v1
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
-          gemini-key: ${{ secrets.GEMINI_API_KEY }}
-          model: gemini-2.5-flash
-          context-lines: '15'
-          add-files: 'false'
-          review-title: 'Gemini Code Review'
-          prompt: |
-            Ты — опытный .NET-ревьюер. Проект: SQL Server CDC Data Extractor — Windows Service
-            для извлечения данных из SQL Server через CDC (Change Data Capture) с загрузкой
-            в downstream API как gzip CSV. Включает WPF-приложение (конфигуратор + менеджер)
-            с IPC через Named Pipes (StreamJsonRpc).
+          python-version: '3.12'
 
-            Технологии: C# / .NET 10, Dapper, Serilog, Polly, CsvHelper, Cronos,
-            CommunityToolkit.Mvvm, xUnit + NSubstitute + FluentAssertions.
+      - name: Install dependencies
+        run: pip install google-genai
 
-            Архитектура: Clean Architecture (Domain → Application → Infrastructure),
-            Service и App — точки входа. DDD: Value Objects, Entities, Domain Events.
+      - name: Generate diff
+        run: |
+          git diff -U15 ${{ github.event.pull_request.base.sha }} \
+                        ${{ github.event.pull_request.head.sha }} > review.diff
 
-            Проверь изменения по следующим критериям:
+      - name: Write review prompt
+        run: |
+          cat > review_prompt.txt << 'PROMPT_EOF'
+          Ты — опытный .NET-ревьюер. Проект: SQL Server CDC Data Extractor — Windows Service
+          для извлечения данных из SQL Server через CDC (Change Data Capture) с загрузкой
+          в downstream API как gzip CSV. Включает WPF-приложение (конфигуратор + менеджер)
+          с IPC через Named Pipes (StreamJsonRpc).
 
-            1. **.NET Best Practices**
-               - async/await с ConfigureAwait(false) во всех не-UI путях
-               - Nullable reference types (проект использует `<Nullable>enable</Nullable>`)
-               - Правильное использование DI и IOptions<T>
-               - IDisposable / IAsyncDisposable — корректное освобождение ресурсов
-               - CancellationToken — передача во все async методы
+          Технологии: C# / .NET 10, Dapper, Serilog, Polly, CsvHelper, Cronos,
+          CommunityToolkit.Mvvm, xUnit + NSubstitute + FluentAssertions.
 
-            2. **Windows-специфичное**
-               - Пути к файлам через Path.Combine, не хардкод
-               - Жизненный цикл Windows Service (BackgroundService, graceful shutdown)
-               - UAC и привилегии (sc.exe, Event Log, Named Pipes ACL)
-               - Кодировки (UTF-8 для CSV, Unicode для SQL Server)
+          Архитектура: Clean Architecture (Domain → Application → Infrastructure),
+          Service и App — точки входа. DDD: Value Objects, Entities, Domain Events.
 
-            3. **Безопасность**
-               - Параметризованные SQL-запросы (нет конкатенации в SQL)
-               - Квотирование идентификаторов ([schema].[table])
-               - DPAPI для хранения токенов (ProtectedData)
-               - TLS для SQL Server (Encrypt=True)
-               - HTTPS для downstream API
-               - Named Pipe ACL (PipeSecurity)
-               - Нет секретов в коде или логах
+          Проверь изменения по следующим критериям:
 
-            4. **Производительность**
-               - Потоковая обработка больших таблиц (IAsyncEnumerable, streaming)
-               - CancellationToken для отмены долгих операций
-               - Работа с памятью — нет загрузки всей таблицы в память
-               - Polly retry для transient SQL faults
-               - Chunk-загрузка (MaxBytes per chunk)
+          1. **.NET Best Practices**
+             - async/await с ConfigureAwait(false) во всех не-UI путях
+             - Nullable reference types (проект использует `<Nullable>enable</Nullable>`)
+             - Правильное использование DI и IOptions<T>
+             - IDisposable / IAsyncDisposable — корректное освобождение ресурсов
+             - CancellationToken — передача во все async методы
 
-            5. **Качество кода**
-               - Соответствие CLAUDE.md (соглашения проекта)
-               - Structured logging через Serilog (не string interpolation в шаблонах)
-               - Actionable error messages (имя таблицы, batch ID, LSN, remediation hint)
-               - XML-документация на public API
-               - TDD: тесты пишутся до реализации
-               - Clean Architecture: Domain не зависит от Infrastructure
+          2. **Windows-специфичное**
+             - Пути к файлам через Path.Combine, не хардкод
+             - Жизненный цикл Windows Service (BackgroundService, graceful shutdown)
+             - UAC и привилегии (sc.exe, Event Log, Named Pipes ACL)
+             - Кодировки (UTF-8 для CSV, Unicode для SQL Server)
 
-            Уровни серьёзности:
-            - 🔴 Критично: баги, уязвимости, потеря данных, нарушение LSN-контракта
-            - 🟡 Рекомендация: качество кода, производительность, улучшения
-            - 🟢 Хорошо: отметь удачные решения
+          3. **Безопасность**
+             - Параметризованные SQL-запросы (нет конкатенации в SQL)
+             - Квотирование идентификаторов ([schema].[table])
+             - DPAPI для хранения токенов (ProtectedData)
+             - TLS для SQL Server (Encrypt=True)
+             - HTTPS для downstream API
+             - Named Pipe ACL (PipeSecurity)
+             - Нет секретов в коде или логах
+
+          4. **Производительность**
+             - Потоковая обработка больших таблиц (IAsyncEnumerable, streaming)
+             - CancellationToken для отмены долгих операций
+             - Работа с памятью — нет загрузки всей таблицы в память
+             - Polly retry для transient SQL faults
+             - Chunk-загрузка (MaxBytes per chunk)
+
+          5. **Качество кода**
+             - Соответствие CLAUDE.md (соглашения проекта)
+             - Structured logging через Serilog (не string interpolation в шаблонах)
+             - Actionable error messages (имя таблицы, batch ID, LSN, remediation hint)
+             - XML-документация на public API
+             - TDD: тесты пишутся до реализации
+             - Clean Architecture: Domain не зависит от Infrastructure
+
+          Уровни серьёзности:
+          - 🔴 Критично: баги, уязвимости, потеря данных, нарушение LSN-контракта
+          - 🟡 Рекомендация: качество кода, производительность, улучшения
+          - 🟢 Хорошо: отметь удачные решения
+
+          Write output in markdown format.
+          PROMPT_EOF
+
+      - name: Run Gemini review
+        id: gemini
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          python3 << 'PYEOF'
+          import os, sys
+          from google import genai
+          from google.genai import types
+
+          api_key = os.environ["GEMINI_API_KEY"]
+          pr_title = os.environ.get("PR_TITLE", "")
+          pr_body = os.environ.get("PR_BODY", "")
+
+          with open("review.diff") as f:
+              diff = f.read()
+
+          with open("review_prompt.txt") as f:
+              review_instructions = f.read()
+
+          prompt = (
+              f"## PR title\n{pr_title}\n\n"
+              f"## PR body\n{pr_body}\n\n"
+              f"## Diff\n```\n{diff}\n```\n\n"
+              f"{review_instructions}"
+          )
+
+          client = genai.Client(api_key=api_key)
+          response = client.models.generate_content(
+              model="gemini-2.5-flash",
+              contents=prompt,
+              config=types.GenerateContentConfig(
+                  system_instruction="You are a code review assistant helping review .NET/C# code changes in a pull request.",
+                  temperature=0.0,
+                  top_p=0.0,
+              ),
+          )
+
+          review_text = response.text
+          with open("review_output.md", "w") as f:
+              f.write("# Gemini Code Review\n\n")
+              f.write(review_text)
+
+          print(review_text)
+          PYEOF
+
+      - name: Post review comment
+        if: always() && hashFiles('review_output.md') != ''
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          body-path: review_output.md
+          reactions: '+1'
