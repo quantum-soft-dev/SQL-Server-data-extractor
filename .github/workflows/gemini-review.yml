@@ -1,0 +1,91 @@
+name: Gemini PR Reviewer
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review]
+    paths:
+      - '**.cs'
+      - '**.xaml'
+      - '**.csproj'
+      - '**.slnx'
+      - '**.json'
+      - '**.toml'
+      - '**.yml'
+      - '**.md'
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Gemini Code Review
+        uses: sshnaidm/gemini-code-review-action@v1
+        with:
+          gemini-key: ${{ secrets.GEMINI_API_KEY }}
+          model: gemini-2.5-flash
+          context-lines: '15'
+          add-files: 'false'
+          review-title: 'Gemini Code Review'
+          prompt: |
+            Ты — опытный .NET-ревьюер. Проект: SQL Server CDC Data Extractor — Windows Service
+            для извлечения данных из SQL Server через CDC (Change Data Capture) с загрузкой
+            в downstream API как gzip CSV. Включает WPF-приложение (конфигуратор + менеджер)
+            с IPC через Named Pipes (StreamJsonRpc).
+
+            Технологии: C# / .NET 10, Dapper, Serilog, Polly, CsvHelper, Cronos,
+            CommunityToolkit.Mvvm, xUnit + NSubstitute + FluentAssertions.
+
+            Архитектура: Clean Architecture (Domain → Application → Infrastructure),
+            Service и App — точки входа. DDD: Value Objects, Entities, Domain Events.
+
+            Проверь изменения по следующим критериям:
+
+            1. **.NET Best Practices**
+               - async/await с ConfigureAwait(false) во всех не-UI путях
+               - Nullable reference types (проект использует `<Nullable>enable</Nullable>`)
+               - Правильное использование DI и IOptions<T>
+               - IDisposable / IAsyncDisposable — корректное освобождение ресурсов
+               - CancellationToken — передача во все async методы
+
+            2. **Windows-специфичное**
+               - Пути к файлам через Path.Combine, не хардкод
+               - Жизненный цикл Windows Service (BackgroundService, graceful shutdown)
+               - UAC и привилегии (sc.exe, Event Log, Named Pipes ACL)
+               - Кодировки (UTF-8 для CSV, Unicode для SQL Server)
+
+            3. **Безопасность**
+               - Параметризованные SQL-запросы (нет конкатенации в SQL)
+               - Квотирование идентификаторов ([schema].[table])
+               - DPAPI для хранения токенов (ProtectedData)
+               - TLS для SQL Server (Encrypt=True)
+               - HTTPS для downstream API
+               - Named Pipe ACL (PipeSecurity)
+               - Нет секретов в коде или логах
+
+            4. **Производительность**
+               - Потоковая обработка больших таблиц (IAsyncEnumerable, streaming)
+               - CancellationToken для отмены долгих операций
+               - Работа с памятью — нет загрузки всей таблицы в память
+               - Polly retry для transient SQL faults
+               - Chunk-загрузка (MaxBytes per chunk)
+
+            5. **Качество кода**
+               - Соответствие CLAUDE.md (соглашения проекта)
+               - Structured logging через Serilog (не string interpolation в шаблонах)
+               - Actionable error messages (имя таблицы, batch ID, LSN, remediation hint)
+               - XML-документация на public API
+               - TDD: тесты пишутся до реализации
+               - Clean Architecture: Domain не зависит от Infrastructure
+
+            Уровни серьёзности:
+            - 🔴 Критично: баги, уязвимости, потеря данных, нарушение LSN-контракта
+            - 🟡 Рекомендация: качество кода, производительность, улучшения
+            - 🟢 Хорошо: отметь удачные решения
