@@ -2,6 +2,7 @@ using CdcExtractor.Application.Services;
 using CdcExtractor.Contracts.Config;
 using CdcExtractor.Domain.Entities;
 using CdcExtractor.Domain.Enums;
+using CdcExtractor.Domain.Exceptions;
 using CdcExtractor.Domain.Interfaces;
 using CdcExtractor.Domain.Models;
 using CdcExtractor.Domain.ValueObjects;
@@ -69,7 +70,7 @@ public class DeltaServiceTests
 
     /// <summary>
     /// Sets up standard CDC reader mocks for a successful delta extraction:
-    /// IncrementLsn, GetMaxLsn, and ReadAllChanges returning the supplied rows.
+    /// IncrementLsn, GetMaxLsn, GetMinLsn (no gap), and ReadAllChanges returning the supplied rows.
     /// </summary>
     private void SetupStandardCdcMocks(IEnumerable<CdcChangeRow>? rows = null)
     {
@@ -77,6 +78,10 @@ public class DeltaServiceTests
             .Returns(IncrementedLsn);
         _cdcReader.GetMaxLsnAsync(Arg.Any<CancellationToken>())
             .Returns(MaxLsn);
+
+        // Default: no gap — min available LSN is below from LSN
+        _cdcReader.GetMinLsnAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(Lsn.Parse("0x00000020000000000001"));
 
         var cdcRows = rows?.ToList() ?? new List<CdcChangeRow>();
         _cdcReader.ReadAllChangesAsync(
@@ -326,5 +331,225 @@ public class DeltaServiceTests
             MaxLsn.ToString(),
             TestManifest.Hash.Value,
             Arg.Any<CancellationToken>());
+    }
+
+    // =======================================================================
+    // CDC Gap Detection Tests (T096 — US4)
+    // =======================================================================
+
+    /// <summary>
+    /// Helper: LSN that is GREATER than LastProcessedLsn — simulates CDC history purge.
+    /// When GetMinLsnAsync returns this, it means changes before this LSN were cleaned up.
+    /// </summary>
+    private static readonly Lsn GapMinLsn = Lsn.Parse("0x00000028000000000001");
+
+    // -----------------------------------------------------------------------
+    // Test 10: Gap detected — table marked RE_BOOTSTRAP
+    // -----------------------------------------------------------------------
+    [Fact]
+    public async Task ExtractDelta_GapDetected_SetsTableStatusToReBootstrap()
+    {
+        // Arrange
+        var tableState = CreateCompletedTableState(LastProcessedLsn);
+
+        _cdcReader.IncrementLsnAsync(LastProcessedLsn, Arg.Any<CancellationToken>())
+            .Returns(IncrementedLsn);
+        _cdcReader.GetMaxLsnAsync(Arg.Any<CancellationToken>())
+            .Returns(MaxLsn);
+
+        // Min LSN from CDC > incremented last processed LSN → gap
+        _cdcReader.GetMinLsnAsync(tableState.CaptureInstance!, Arg.Any<CancellationToken>())
+            .Returns(GapMinLsn);
+
+        // Act
+        var result = await _sut.ExtractDeltaAsync(
+            tableState, "batch-1", "lease-1", TestManifest, CancellationToken.None);
+
+        // Assert
+        tableState.BootstrapStatus.Should().Be(BootstrapStatus.ReBootstrap);
+    }
+
+    // -----------------------------------------------------------------------
+    // Test 11: Gap detected — table state persisted to store
+    // -----------------------------------------------------------------------
+    [Fact]
+    public async Task ExtractDelta_GapDetected_PersistsTableState()
+    {
+        // Arrange
+        var tableState = CreateCompletedTableState(LastProcessedLsn);
+
+        _cdcReader.IncrementLsnAsync(LastProcessedLsn, Arg.Any<CancellationToken>())
+            .Returns(IncrementedLsn);
+        _cdcReader.GetMaxLsnAsync(Arg.Any<CancellationToken>())
+            .Returns(MaxLsn);
+        _cdcReader.GetMinLsnAsync(tableState.CaptureInstance!, Arg.Any<CancellationToken>())
+            .Returns(GapMinLsn);
+
+        // Act
+        await _sut.ExtractDeltaAsync(
+            tableState, "batch-1", "lease-1", TestManifest, CancellationToken.None);
+
+        // Assert — state store must be called to persist the RE_BOOTSTRAP status
+        await _stateStore.Received(1).UpsertTableStateAsync(tableState, Arg.Any<CancellationToken>());
+    }
+
+    // -----------------------------------------------------------------------
+    // Test 12: Gap detected — no partial data extracted
+    // -----------------------------------------------------------------------
+    [Fact]
+    public async Task ExtractDelta_GapDetected_DoesNotReadChanges()
+    {
+        // Arrange
+        var tableState = CreateCompletedTableState(LastProcessedLsn);
+
+        _cdcReader.IncrementLsnAsync(LastProcessedLsn, Arg.Any<CancellationToken>())
+            .Returns(IncrementedLsn);
+        _cdcReader.GetMaxLsnAsync(Arg.Any<CancellationToken>())
+            .Returns(MaxLsn);
+        _cdcReader.GetMinLsnAsync(tableState.CaptureInstance!, Arg.Any<CancellationToken>())
+            .Returns(GapMinLsn);
+
+        // Act
+        await _sut.ExtractDeltaAsync(
+            tableState, "batch-1", "lease-1", TestManifest, CancellationToken.None);
+
+        // Assert — NO CDC reads, NO downloads, NO uploads, NO commits
+        _cdcReader.DidNotReceive().ReadAllChangesAsync(
+            Arg.Any<string>(), Arg.Any<Lsn>(), Arg.Any<Lsn>(), Arg.Any<CancellationToken>());
+        await _downstreamClient.DidNotReceive().CreateDatasetAsync(
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(),
+            Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+        await _downstreamClient.DidNotReceive().UploadChunkAsync(
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<int>(),
+            Arg.Any<Stream>(), Arg.Any<CancellationToken>());
+        await _downstreamClient.DidNotReceive().CommitDatasetAsync(
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
+    // -----------------------------------------------------------------------
+    // Test 13: Gap detected — error reported to downstream with CDC_GAP_DETECTED
+    // -----------------------------------------------------------------------
+    [Fact]
+    public async Task ExtractDelta_GapDetected_ReportsErrorToDownstream()
+    {
+        // Arrange
+        var tableState = CreateCompletedTableState(LastProcessedLsn);
+
+        _cdcReader.IncrementLsnAsync(LastProcessedLsn, Arg.Any<CancellationToken>())
+            .Returns(IncrementedLsn);
+        _cdcReader.GetMaxLsnAsync(Arg.Any<CancellationToken>())
+            .Returns(MaxLsn);
+        _cdcReader.GetMinLsnAsync(tableState.CaptureInstance!, Arg.Any<CancellationToken>())
+            .Returns(GapMinLsn);
+
+        // Act
+        await _sut.ExtractDeltaAsync(
+            tableState, "batch-1", "lease-1", TestManifest, CancellationToken.None);
+
+        // Assert — error reported with code CDC_GAP_DETECTED and is_terminal true
+        await _downstreamClient.Received(1).ReportErrorAsync(
+            "batch-1",
+            "lease-1",
+            "TABLE",
+            TestTable.FullName,
+            Arg.Any<string?>(),
+            "ERROR",
+            "CDC_GAP_DETECTED",
+            Arg.Is<string>(m => m.Contains(TestTable.FullName)),
+            Arg.Is(false),
+            Arg.Is(true),
+            Arg.Any<CancellationToken>());
+    }
+
+    // -----------------------------------------------------------------------
+    // Test 14: Gap detected — returns aborted dataset with CDC_GAP_DETECTED
+    // -----------------------------------------------------------------------
+    [Fact]
+    public async Task ExtractDelta_GapDetected_ReturnsAbortedDataset()
+    {
+        // Arrange
+        var tableState = CreateCompletedTableState(LastProcessedLsn);
+
+        _cdcReader.IncrementLsnAsync(LastProcessedLsn, Arg.Any<CancellationToken>())
+            .Returns(IncrementedLsn);
+        _cdcReader.GetMaxLsnAsync(Arg.Any<CancellationToken>())
+            .Returns(MaxLsn);
+        _cdcReader.GetMinLsnAsync(tableState.CaptureInstance!, Arg.Any<CancellationToken>())
+            .Returns(GapMinLsn);
+
+        // Act
+        var result = await _sut.ExtractDeltaAsync(
+            tableState, "batch-1", "lease-1", TestManifest, CancellationToken.None);
+
+        // Assert
+        result.Status.Should().Be(DatasetStatus.Aborted);
+        result.ErrorCode.Should().Be("CDC_GAP_DETECTED");
+        result.ErrorMessage.Should().Contain(TestTable.FullName);
+        result.RowCount.Should().Be(0);
+        result.ChunkCount.Should().Be(0);
+    }
+
+    // -----------------------------------------------------------------------
+    // Test 15: Gap detected — LSN NOT advanced
+    // -----------------------------------------------------------------------
+    [Fact]
+    public async Task ExtractDelta_GapDetected_DoesNotAdvanceLsn()
+    {
+        // Arrange
+        var tableState = CreateCompletedTableState(LastProcessedLsn);
+        var originalLsn = tableState.LastProcessedLsn;
+
+        _cdcReader.IncrementLsnAsync(LastProcessedLsn, Arg.Any<CancellationToken>())
+            .Returns(IncrementedLsn);
+        _cdcReader.GetMaxLsnAsync(Arg.Any<CancellationToken>())
+            .Returns(MaxLsn);
+        _cdcReader.GetMinLsnAsync(tableState.CaptureInstance!, Arg.Any<CancellationToken>())
+            .Returns(GapMinLsn);
+
+        // Act
+        await _sut.ExtractDeltaAsync(
+            tableState, "batch-1", "lease-1", TestManifest, CancellationToken.None);
+
+        // Assert — LSN must NOT have advanced; status changed to ReBootstrap so
+        // AdvanceLsn would throw anyway, but verify the stored LSN is unchanged
+        tableState.LastProcessedLsn.Should().Be(originalLsn);
+    }
+
+    // -----------------------------------------------------------------------
+    // Test 16: No gap — normal delta extraction proceeds
+    // -----------------------------------------------------------------------
+    [Fact]
+    public async Task ExtractDelta_NoGap_ProceedsNormally()
+    {
+        // Arrange
+        var tableState = CreateCompletedTableState(LastProcessedLsn);
+
+        // Min LSN from CDC is LESS than or equal to incremented LSN → no gap
+        var safeMinLsn = Lsn.Parse("0x00000020000000000001");
+
+        _cdcReader.IncrementLsnAsync(LastProcessedLsn, Arg.Any<CancellationToken>())
+            .Returns(IncrementedLsn);
+        _cdcReader.GetMaxLsnAsync(Arg.Any<CancellationToken>())
+            .Returns(MaxLsn);
+        _cdcReader.GetMinLsnAsync(tableState.CaptureInstance!, Arg.Any<CancellationToken>())
+            .Returns(safeMinLsn);
+        _cdcReader.ReadAllChangesAsync(
+                Arg.Any<string>(), Arg.Any<Lsn>(), Arg.Any<Lsn>(), Arg.Any<CancellationToken>())
+            .Returns(CreateTestCdcRows().ToAsyncEnumerable());
+        SetupDownstreamCreate();
+
+        // Act
+        var result = await _sut.ExtractDeltaAsync(
+            tableState, "batch-1", "lease-1", TestManifest, CancellationToken.None);
+
+        // Assert — normal extraction proceeds
+        result.Status.Should().Be(DatasetStatus.Committed);
+        tableState.BootstrapStatus.Should().Be(BootstrapStatus.Complete);
+
+        // Assert — no error reported for gap
+        await _downstreamClient.DidNotReceive().ReportErrorAsync(
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string?>(),
+            Arg.Any<string?>(), Arg.Any<string>(), "CDC_GAP_DETECTED", Arg.Any<string>(),
+            Arg.Any<bool>(), Arg.Any<bool>(), Arg.Any<CancellationToken>());
     }
 }

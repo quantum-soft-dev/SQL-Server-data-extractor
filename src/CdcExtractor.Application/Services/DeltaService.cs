@@ -48,6 +48,10 @@ public sealed class DeltaService : IDeltaService
 
         // Step 1: Calculate LSN range
         // from_lsn = increment(last_processed_lsn) — exclusive boundary per R-001
+        var captureInstance = tableState.CaptureInstance
+            ?? throw new InvalidOperationException(
+                $"Table {tableState.TableId.FullName} has no capture instance configured.");
+
         var fromLsn = await _cdcReader.IncrementLsnAsync(tableState.LastProcessedLsn, ct)
             .ConfigureAwait(false);
         var toLsn = await _cdcReader.GetMaxLsnAsync(ct).ConfigureAwait(false);
@@ -58,6 +62,38 @@ public sealed class DeltaService : IDeltaService
             var skipped = DatasetRun.Create(tableState.TableId, fromLsn, toLsn);
             skipped.Skip("No new CDC changes available");
             return skipped;
+        }
+
+        // Step 1b: CDC gap detection — verify change history is available
+        var minAvailableLsn = await _cdcReader.GetMinLsnAsync(captureInstance, ct)
+            .ConfigureAwait(false);
+
+        if (minAvailableLsn.CompareTo(fromLsn) > 0)
+        {
+            // Gap detected: CDC history was cleaned before we could extract it.
+            // Mark table for re-bootstrap and report error — do NOT extract partial data.
+            var reason = $"CDC gap detected for {tableState.TableId.FullName}: " +
+                $"expected LSN {fromLsn}, but minimum available LSN is {minAvailableLsn}. " +
+                "Change history was cleaned before extraction. Table will be re-bootstrapped on next snapshot run.";
+
+            tableState.MarkReBootstrap(reason);
+            await _stateStore.UpsertTableStateAsync(tableState, ct).ConfigureAwait(false);
+
+            try
+            {
+                await _downstreamClient.ReportErrorAsync(
+                    batchId, leaseToken, "TABLE", tableState.TableId.FullName,
+                    null, "ERROR", "CDC_GAP_DETECTED", reason,
+                    isRetryable: false, isTerminal: true, ct).ConfigureAwait(false);
+            }
+            catch
+            {
+                // Best-effort error reporting; the gap handling is more important
+            }
+
+            var gapDataset = DatasetRun.Create(tableState.TableId, fromLsn, toLsn);
+            gapDataset.Abort("CDC_GAP_DETECTED", reason);
+            return gapDataset;
         }
 
         var dataset = DatasetRun.Create(tableState.TableId, fromLsn, toLsn);
@@ -74,10 +110,6 @@ public sealed class DeltaService : IDeltaService
         try
         {
             // Step 3: Read CDC changes in LSN range
-            var captureInstance = tableState.CaptureInstance
-                ?? throw new InvalidOperationException(
-                    $"Table {tableState.TableId.FullName} has no capture instance configured.");
-
             var columnNames = manifest.Columns.Select(c => c.Name).ToList();
             var changes = _cdcReader.ReadAllChangesAsync(captureInstance, fromLsn, toLsn, ct);
 

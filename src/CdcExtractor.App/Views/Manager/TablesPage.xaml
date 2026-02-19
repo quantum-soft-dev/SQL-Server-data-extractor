@@ -1,0 +1,163 @@
+<UserControl x:Class="CdcExtractor.App.Views.Manager.TablesPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:CdcExtractor.App.Controls"
+             xmlns:vm="clr-namespace:CdcExtractor.App.ViewModels"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             d:DataContext="{d:DesignInstance vm:TablesViewModel}"
+             mc:Ignorable="d">
+
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+    </UserControl.Resources>
+
+    <Grid Margin="32">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Header Row -->
+        <Grid Grid.Row="0" Margin="0,0,0,16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Grid.Column="0"
+                       Text="Tables"
+                       Style="{StaticResource H1}"
+                       VerticalAlignment="Center" />
+
+            <Button Grid.Column="1"
+                    Content="Refresh"
+                    Style="{StaticResource SecondaryButton}"
+                    Command="{Binding LoadTablesCommand}"
+                    Padding="16,8" />
+        </Grid>
+
+        <!-- Error Banner -->
+        <Border Grid.Row="1"
+                Background="#FEE2E2" CornerRadius="6" Padding="12,8" Margin="0,0,0,12"
+                Visibility="{Binding ErrorMessage, Converter={StaticResource BoolToVis}, TargetNullValue=Collapsed, FallbackValue=Collapsed}">
+            <TextBlock Text="{Binding ErrorMessage}" Foreground="#DC2626" TextWrapping="Wrap" />
+        </Border>
+
+        <!-- Tables DataGrid -->
+        <DataGrid Grid.Row="2"
+                  ItemsSource="{Binding Tables}"
+                  AutoGenerateColumns="False"
+                  IsReadOnly="True"
+                  HeadersVisibility="Column"
+                  GridLinesVisibility="Horizontal"
+                  BorderThickness="1"
+                  BorderBrush="{StaticResource BorderBrush}"
+                  Background="{StaticResource SurfaceBrush}"
+                  RowBackground="White"
+                  AlternatingRowBackground="#F8FAFC"
+                  CanUserReorderColumns="False"
+                  CanUserResizeRows="False"
+                  SelectionMode="Single"
+                  VerticalScrollBarVisibility="Auto">
+            <DataGrid.Columns>
+                <!-- Table Name -->
+                <DataGridTextColumn Header="Table Name" Binding="{Binding Table}" Width="*" />
+
+                <!-- Mode (TagBadge: CDC / SNAP) -->
+                <DataGridTemplateColumn Header="Mode" Width="90">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <controls:TagBadge Tag="{Binding Mode}" Margin="2" />
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <!-- CDC Enabled (checkbox icon) -->
+                <DataGridTemplateColumn Header="CDC Enabled" Width="100">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="16">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Text" Value="&#x2718;" />
+                                        <Setter Property="Foreground" Value="#DC2626" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding CdcEnabled}" Value="True">
+                                                <Setter Property="Text" Value="&#x2714;" />
+                                                <Setter Property="Foreground" Value="#16A34A" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <!-- Last LSN -->
+                <DataGridTextColumn Header="Last LSN" Binding="{Binding LastProcessedLsn, TargetNullValue=--}" Width="140" />
+
+                <!-- Last Sync -->
+                <DataGridTextColumn Header="Last Sync" Binding="{Binding LastSyncTime, StringFormat='{}{0:yyyy-MM-dd HH:mm:ss}', TargetNullValue=--}" Width="150" />
+
+                <!-- Lag (minutes) -->
+                <DataGridTextColumn Header="Lag (min)" Binding="{Binding Lag}" Width="80">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="HorizontalAlignment" Value="Right" />
+                            <Setter Property="Padding" Value="0,0,8,0" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Lag}" Value="0">
+                                    <Setter Property="Foreground" Value="#16A34A" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+
+                <!-- Bootstrap Status (StatusChip with tooltip for RE_BOOTSTRAP) -->
+                <DataGridTemplateColumn Header="Bootstrap" Width="120">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <controls:StatusChip Status="{Binding BootstrapStatus}" Margin="2">
+                                <controls:StatusChip.Style>
+                                    <Style TargetType="controls:StatusChip">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding BootstrapStatus}" Value="ReBootstrap">
+                                                <Setter Property="ToolTip">
+                                                    <Setter.Value>
+                                                        <ToolTip MaxWidth="350">
+                                                            <StackPanel>
+                                                                <TextBlock Text="CDC Gap Detected" FontWeight="Bold" Margin="0,0,0,4" />
+                                                                <TextBlock TextWrapping="Wrap"
+                                                                           Text="CDC history was cleaned before extraction. Table will be re-bootstrapped (full snapshot) on the next scheduled run." />
+                                                                <TextBlock TextWrapping="Wrap" Margin="0,6,0,0" Foreground="#64748B"
+                                                                           Text="No action required — the service will automatically perform a full snapshot to re-establish the LSN baseline." />
+                                                            </StackPanel>
+                                                        </ToolTip>
+                                                    </Setter.Value>
+                                                </Setter>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </controls:StatusChip.Style>
+                            </controls:StatusChip>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <!-- Error -->
+                <DataGridTextColumn Header="Error" Binding="{Binding Error}" Width="*">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="#DC2626" />
+                            <Setter Property="TextWrapping" Value="Wrap" />
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+    </Grid>
+</UserControl>

@@ -215,7 +215,43 @@ public sealed class ExtractionOrchestrator
 
                     DatasetRun dataset;
 
-                    if (tableState.ExtractionMode == ExtractionMode.Snap)
+                    if (tableState.BootstrapStatus == BootstrapStatus.ReBootstrap)
+                    {
+                        // RE_BOOTSTRAP tables: CDC gap was detected previously.
+                        // Route to SnapshotService for full re-extract to re-establish LSN baseline.
+                        _logger.LogWarning(
+                            "Re-bootstrapping table {Table} in batch {BatchId} due to CDC gap. " +
+                            "Performing full snapshot to re-establish LSN baseline.",
+                            tableState.TableId.FullName, batch.Id);
+
+                        // Report the gap error to downstream before re-extracting
+                        try
+                        {
+                            var gapMessage = $"CDC gap detected for {tableState.TableId.FullName}. " +
+                                "Change history was cleaned before extraction. " +
+                                "Performing full re-bootstrap snapshot.";
+
+                            await _downstreamClient.ReportErrorAsync(
+                                remoteBatchId, leaseToken, "TABLE", tableState.TableId.FullName,
+                                null, "ERROR", "CDC_GAP_DETECTED", gapMessage,
+                                isRetryable: false, isTerminal: true, ct).ConfigureAwait(false);
+                        }
+                        catch (Exception reportEx)
+                        {
+                            _logger.LogWarning(reportEx,
+                                "Failed to report CDC gap error to downstream for table {Table}",
+                                tableState.TableId.FullName);
+                        }
+
+                        dataset = await _snapshotService.ExtractSnapshotAsync(
+                            tableState.TableId, remoteBatchId, leaseToken, manifest, ct)
+                            .ConfigureAwait(false);
+
+                        // SnapshotService calls MarkComplete internally, resetting status to Complete.
+                        // Persist the updated state.
+                        await _stateStore.UpsertTableStateAsync(tableState, ct).ConfigureAwait(false);
+                    }
+                    else if (tableState.ExtractionMode == ExtractionMode.Snap)
                     {
                         // SNAP-mode tables always get full snapshots
                         _logger.LogInformation(
