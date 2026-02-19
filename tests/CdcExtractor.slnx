@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="CdcExtractor.App.Tests/CdcExtractor.App.Tests.csproj" />
+  <Project Path="CdcExtractor.Application.Tests/CdcExtractor.Application.Tests.csproj" />
+  <Project Path="CdcExtractor.Domain.Tests/CdcExtractor.Domain.Tests.csproj" />
+  <Project Path="CdcExtractor.Infrastructure.Tests/CdcExtractor.Infrastructure.Tests.csproj" />
+  <Project Path="CdcExtractor.Service.Tests/CdcExtractor.Service.Tests.csproj" />
+</Solution>
