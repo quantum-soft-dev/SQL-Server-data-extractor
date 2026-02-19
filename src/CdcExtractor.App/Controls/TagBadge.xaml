@@ -14,6 +14,7 @@
         <TextBlock x:Name="BadgeText"
                    FontSize="10"
                    FontWeight="SemiBold"
+                   Foreground="#64748B"
                    VerticalAlignment="Center" />
     </Border>
 

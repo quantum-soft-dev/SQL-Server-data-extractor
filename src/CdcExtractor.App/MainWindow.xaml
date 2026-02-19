@@ -5,7 +5,8 @@
         Title="SQL Server CDC Data Extractor"
         Height="768" Width="1200"
         WindowStartupLocation="CenterScreen"
-        Background="{StaticResource BackgroundBrush}">
+        Background="{StaticResource BackgroundBrush}"
+        Foreground="{StaticResource TextPrimaryBrush}">
     <Grid>
         <!-- Wizard mode -->
         <Grid x:Name="WizardPanel" Visibility="Collapsed">
@@ -76,7 +77,8 @@
                                     <Setter.Value>
                                         <ControlTemplate TargetType="ListBoxItem">
                                             <Border x:Name="Bd" Padding="{TemplateBinding Padding}"
-                                                    CornerRadius="6" Background="Transparent">
+                                                    CornerRadius="6" Background="Transparent"
+                                                    TextElement.Foreground="{TemplateBinding Foreground}">
                                                 <ContentPresenter />
                                             </Border>
                                             <ControlTemplate.Triggers>

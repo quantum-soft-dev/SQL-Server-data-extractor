@@ -19,6 +19,7 @@ public partial class TagBadge : UserControl
     public TagBadge()
     {
         InitializeComponent();
+        UpdateAppearance();
     }
 
     public new string Tag

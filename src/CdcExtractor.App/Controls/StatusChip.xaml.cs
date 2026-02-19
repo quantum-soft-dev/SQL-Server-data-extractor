@@ -19,6 +19,7 @@ public partial class StatusChip : UserControl
     public StatusChip()
     {
         InitializeComponent();
+        UpdateAppearance();
     }
 
     public string Status

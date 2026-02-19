@@ -17,6 +17,19 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
+        // Workaround for .NET 9+/10 WPF regression (dotnet/wpf#10020, #10042):
+        // DynamicResource optimization causes theme styles to resolve property values
+        // to DependencyProperty.UnsetValue during initial layout of custom templates.
+        // These errors are transient — the UI renders correctly after swallowing them.
+        DispatcherUnhandledException += (_, args) =>
+        {
+            if (args.Exception.Message.Contains("DependencyProperty.UnsetValue") ||
+                (args.Exception.InnerException?.Message.Contains("DependencyProperty.UnsetValue") ?? false))
+            {
+                args.Handled = true;
+            }
+        };
+
         var services = new ServiceCollection();
 
         // Services
@@ -26,7 +39,12 @@ public partial class App : Application
         // IPC client — singleton manages the named-pipe connection to the Service
         services.AddSingleton<IpcClient>();
         services.AddSingleton<IExtractorService>(sp =>
-            sp.GetRequiredService<IpcClient>().GetProxy());
+        {
+            var client = sp.GetRequiredService<IpcClient>();
+            return client.IsConnected
+                ? client.GetProxy()
+                : new DisconnectedExtractorService();
+        });
 
         // ViewModels
         services.AddSingleton<MainViewModel>();

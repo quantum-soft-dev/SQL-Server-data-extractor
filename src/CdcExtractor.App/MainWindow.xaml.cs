@@ -14,6 +14,7 @@ public partial class MainWindow : Window
     private readonly MainViewModel _mainVm;
     private readonly WizardViewModel _wizard;
     private readonly NavigationService _navigationService;
+    private bool _initialized;
 
     private static readonly Type[] WizardPages =
     [
@@ -46,10 +47,6 @@ public partial class MainWindow : Window
 
         InitializeComponent();
 
-        // Wire the wizard stepper
-        Stepper.Steps = WizardViewModel.StepNames;
-        Stepper.CurrentStep = _wizard.CurrentStep;
-
         _wizard.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(WizardViewModel.CurrentStep))
@@ -79,6 +76,7 @@ public partial class MainWindow : Window
         };
 
         // Apply initial mode
+        _initialized = true;
         ApplyMode();
     }
 
@@ -88,6 +86,10 @@ public partial class MainWindow : Window
         {
             WizardPanel.Visibility = Visibility.Visible;
             ManagerPanel.Visibility = Visibility.Collapsed;
+
+            // Initialize stepper only when wizard is visible
+            Stepper.Steps = WizardViewModel.StepNames;
+            Stepper.CurrentStep = _wizard.CurrentStep;
             NavigateToCurrentWizardStep();
         }
         else
@@ -136,6 +138,8 @@ public partial class MainWindow : Window
 
     private void OnNavSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
+        if (!_initialized) return;
+
         if (NavList.SelectedItem is ListBoxItem item && item.Tag is string pageName)
         {
             NavigateToManagerPage(pageName);
