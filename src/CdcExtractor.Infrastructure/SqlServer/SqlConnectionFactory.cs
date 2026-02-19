@@ -1,5 +1,6 @@
 using CdcExtractor.Contracts.Config;
 using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Logging;
 using Polly;
 using Polly.Retry;
 
@@ -61,7 +62,7 @@ public sealed class SqlConnectionFactory
     /// Builds a <see cref="SqlConnectionFactory"/> from a <see cref="SqlServerConfig"/> record,
     /// choosing integrated or SQL Login authentication based on <see cref="SqlServerConfig.AuthType"/>.
     /// </summary>
-    public static SqlConnectionFactory FromConfig(SqlServerConfig config)
+    public static SqlConnectionFactory FromConfig(SqlServerConfig config, ILogger<SqlConnectionFactory>? logger = null)
     {
         ArgumentNullException.ThrowIfNull(config);
 
@@ -77,6 +78,9 @@ public sealed class SqlConnectionFactory
 
         if (string.Equals(config.AuthType, "SqlLogin", StringComparison.OrdinalIgnoreCase))
         {
+            logger?.LogWarning(
+                "SQL Login authentication is configured. Password is stored in plaintext in configuration. " +
+                "Consider using Windows Authentication or storing credentials in a secrets manager.");
             builder.UserID = config.Username;
             builder.Password = config.Password;
             builder.IntegratedSecurity = false;

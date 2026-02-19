@@ -26,7 +26,7 @@ public sealed class ConfigService
     public async Task<AppConfig?> LoadAsync()
     {
         if (!File.Exists(ConfigPath)) return null;
-        var json = await File.ReadAllTextAsync(ConfigPath);
+        var json = await File.ReadAllTextAsync(ConfigPath).ConfigureAwait(false);
         return JsonSerializer.Deserialize<AppConfig>(json, JsonOptions);
     }
 
@@ -36,7 +36,7 @@ public sealed class ConfigService
         if (directory is not null && !Directory.Exists(directory))
             Directory.CreateDirectory(directory);
         var json = JsonSerializer.Serialize(config, JsonOptions);
-        await File.WriteAllTextAsync(ConfigPath, json);
+        await File.WriteAllTextAsync(ConfigPath, json).ConfigureAwait(false);
     }
 
     public bool ConfigExists() => File.Exists(ConfigPath);

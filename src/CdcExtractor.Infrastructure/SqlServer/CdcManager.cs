@@ -104,6 +104,15 @@ public sealed class CdcManager : ICdcManager
 
         var captureInstance = $"{table.Schema}_{table.Name}";
 
+        if (captureInstance.Length > 100)
+        {
+            throw new ArgumentException(
+                $"Capture instance name '{captureInstance}' is {captureInstance.Length} characters, " +
+                "which exceeds the SQL Server limit of 100 characters for sys.sp_cdc_enable_table @capture_instance. " +
+                $"Shorten the schema or table name for {table.FullName}.",
+                nameof(table));
+        }
+
         await using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct).ConfigureAwait(false);
 
         await connection.ExecuteAsync(

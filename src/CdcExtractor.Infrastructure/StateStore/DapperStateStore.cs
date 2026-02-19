@@ -1,4 +1,3 @@
-using System.Reflection;
 using CdcExtractor.Domain.Entities;
 using CdcExtractor.Domain.Enums;
 using CdcExtractor.Domain.Interfaces;
@@ -119,35 +118,23 @@ public sealed class DapperStateStore : IStateStore
     }
 
     /// <summary>
-    /// Reconstitutes a <see cref="TableState"/> domain entity from a database row.
-    /// Uses reflection to set private-setter properties that have no public mutator.
+    /// Reconstitutes a <see cref="TableState"/> domain entity from a database row
+    /// using the internal <see cref="TableState.Reconstitute"/> factory.
     /// </summary>
     private static TableState MapToEntity(TableStateRow row)
     {
         var mode = Enum.Parse<ExtractionMode>(row.ExtractionMode);
         var tableId = new TableIdentifier(row.TableSchema, row.TableName);
-        var state = new TableState(tableId, mode);
 
-        // Set properties that are only settable via domain methods or reflection
-        SetPrivateProperty(state, nameof(TableState.BootstrapStatus), Enum.Parse<BootstrapStatus>(row.BootstrapStatus));
-        SetPrivateProperty(state, nameof(TableState.LastProcessedLsn),
-            row.LastProcessedLsn is { Length: 10 } bytes ? Lsn.From(bytes) : Lsn.Empty);
-        SetPrivateProperty(state, nameof(TableState.SchemaHash),
-            row.SchemaHash is not null ? new SchemaHash(row.SchemaHash) : null);
-        SetPrivateProperty(state, nameof(TableState.LastSyncTime), row.LastSyncTime);
-        SetPrivateProperty(state, nameof(TableState.ErrorMessage), row.ErrorMessage);
-
-        state.CaptureInstance = row.CaptureInstance;
-
-        return state;
-    }
-
-    private static void SetPrivateProperty<T>(TableState target, string propertyName, T value)
-    {
-        var property = typeof(TableState).GetProperty(propertyName, BindingFlags.Public | BindingFlags.Instance)
-            ?? throw new InvalidOperationException($"Property '{propertyName}' not found on TableState.");
-
-        property.SetValue(target, value);
+        return TableState.Reconstitute(
+            tableId,
+            mode,
+            Enum.Parse<BootstrapStatus>(row.BootstrapStatus),
+            row.LastProcessedLsn is { Length: 10 } bytes ? Lsn.From(bytes) : Lsn.Empty,
+            row.SchemaHash is not null ? new SchemaHash(row.SchemaHash) : null,
+            row.LastSyncTime,
+            row.CaptureInstance,
+            row.ErrorMessage);
     }
 
     /// <summary>

@@ -1,2 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="CdcExtractor.Infrastructure" />
+    <InternalsVisibleTo Include="CdcExtractor.Domain.Tests" />
+  </ItemGroup>
+
 </Project>

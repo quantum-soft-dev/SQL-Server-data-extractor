@@ -10,7 +10,7 @@ public sealed class TableIdentifier : IEquatable<TableIdentifier>
     public string Name { get; }
 
     public string FullName => $"{Schema}.{Name}";
-    public string QuotedFullName => $"[{Schema}].[{Name}]";
+    public string QuotedFullName => $"[{Schema.Replace("]", "]]")}].[{Name.Replace("]", "]]")}]";
 
     public TableIdentifier(string schema, string name)
     {

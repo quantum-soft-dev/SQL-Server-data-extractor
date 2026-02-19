@@ -139,6 +139,9 @@ public sealed partial class CdcReader : ICdcReader
 
     /// <summary>
     /// Maps a single row from the CDC all-changes function to a <see cref="CdcChangeRow"/>.
+    /// Note: The <c>_ts</c> field records extraction wall-clock time, not the actual CDC change
+    /// commit time. Use <c>sys.fn_cdc_map_lsn_to_time(__$start_lsn)</c> if approximate commit
+    /// time is needed downstream.
     /// </summary>
     private static CdcChangeRow MapChangeRow(SqlDataReader reader)
     {
@@ -170,7 +173,7 @@ public sealed partial class CdcReader : ICdcReader
             if (columnName.StartsWith("__$", StringComparison.Ordinal))
                 continue;
 
-            values[columnName] = reader.IsDBNull(i) ? null : reader.GetValue(i);
+            values[columnName] = reader.IsDBNull(i) ? null : ReadTypedValue(reader, i);
         }
 
         return new CdcChangeRow(
@@ -189,10 +192,34 @@ public sealed partial class CdcReader : ICdcReader
         var values = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
         for (var i = 0; i < reader.FieldCount; i++)
         {
-            values[reader.GetName(i)] = reader.IsDBNull(i) ? null : reader.GetValue(i);
+            values[reader.GetName(i)] = reader.IsDBNull(i) ? null : ReadTypedValue(reader, i);
         }
 
         return new DataRow(values);
+    }
+
+    /// <summary>
+    /// Reads a column value using typed accessors when possible to avoid boxing
+    /// and reduce allocations on <c>SequentialAccess</c> readers.
+    /// </summary>
+    private static object ReadTypedValue(SqlDataReader reader, int ordinal)
+    {
+        var fieldType = reader.GetFieldType(ordinal);
+
+        if (fieldType == typeof(string)) return reader.GetString(ordinal);
+        if (fieldType == typeof(int)) return reader.GetInt32(ordinal);
+        if (fieldType == typeof(long)) return reader.GetInt64(ordinal);
+        if (fieldType == typeof(short)) return reader.GetInt16(ordinal);
+        if (fieldType == typeof(byte)) return reader.GetByte(ordinal);
+        if (fieldType == typeof(bool)) return reader.GetBoolean(ordinal);
+        if (fieldType == typeof(decimal)) return reader.GetDecimal(ordinal);
+        if (fieldType == typeof(double)) return reader.GetDouble(ordinal);
+        if (fieldType == typeof(float)) return reader.GetFloat(ordinal);
+        if (fieldType == typeof(DateTime)) return reader.GetDateTime(ordinal);
+        if (fieldType == typeof(DateTimeOffset)) return reader.GetDateTimeOffset(ordinal);
+        if (fieldType == typeof(Guid)) return reader.GetGuid(ordinal);
+
+        return reader.GetValue(ordinal);
     }
 
     /// <summary>

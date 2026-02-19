@@ -251,7 +251,7 @@ public class ExtractionOrchestratorTests
     {
         var lsn = Lsn.Parse("0x00000027000001E80003");
         var state = new TableState(new TableIdentifier(schema, name), ExtractionMode.Cdc);
-        state.CaptureInstance = $"{schema}_{name}";
+        state.SetCaptureInstance($"{schema}_{name}");
         state.MarkComplete(lsn, TestSchemaHash, DateTimeOffset.UtcNow);
         state.MarkReBootstrap("CDC gap detected — history was cleaned before extraction.");
         return state;
@@ -262,7 +262,7 @@ public class ExtractionOrchestratorTests
     {
         var lsn = Lsn.Parse("0x00000027000001E80003");
         var state = new TableState(new TableIdentifier(schema, name), ExtractionMode.Cdc);
-        state.CaptureInstance = $"{schema}_{name}";
+        state.SetCaptureInstance($"{schema}_{name}");
         state.MarkComplete(lsn, TestSchemaHash, DateTimeOffset.UtcNow);
         return state;
     }

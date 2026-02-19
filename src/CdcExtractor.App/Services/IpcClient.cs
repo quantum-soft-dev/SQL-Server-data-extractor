@@ -16,7 +16,7 @@ public sealed class IpcClient : IDisposable
     public async Task ConnectAsync(CancellationToken ct = default)
     {
         _pipeClient = new NamedPipeClientStream(".", PipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
-        await _pipeClient.ConnectAsync(5000, ct);
+        await _pipeClient.ConnectAsync(5000, ct).ConfigureAwait(false);
         _jsonRpc = JsonRpc.Attach(_pipeClient);
         _proxy = _jsonRpc.Attach<IExtractorService>();
     }

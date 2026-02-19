@@ -19,7 +19,8 @@ public sealed class ExtractorServiceRpc : IExtractorService
     private readonly LogBroadcaster _logBroadcaster;
     private readonly SchedulerWorker _schedulerWorker;
     private readonly DateTimeOffset _startedAt = DateTimeOffset.UtcNow;
-    private readonly string _subscriberId = Guid.NewGuid().ToString("N");
+    private readonly object _subscriberLock = new();
+    private readonly Dictionary<string, string> _activeSubscribers = [];
 
     public ExtractorServiceRpc(
         IBatchHistoryStore batchHistoryStore,
@@ -164,17 +165,33 @@ public sealed class ExtractorServiceRpc : IExtractorService
     [JsonRpcMethod("subscribeLogs")]
     public Task<SubscribeResultDto> SubscribeLogsAsync(string minLevel, CancellationToken ct = default)
     {
-        // Register with LogBroadcaster using instance-scoped subscriber ID.
-        // The callback is a no-op for the MVP; full server→client streaming notifications
-        // will require JsonRpc instance plumbing in IpcServer (separate concern).
-        _logBroadcaster.Subscribe(_subscriberId, minLevel, _ => { });
+        // Generate a unique subscriber ID per call so multiple IPC clients
+        // get independent log subscriptions.
+        var subscriberId = Guid.NewGuid().ToString("N");
+        _logBroadcaster.Subscribe(subscriberId, minLevel, _ => { });
+
+        // Track active subscriber for the calling thread/connection.
+        // In the MVP, only one subscriber per RPC instance is supported.
+        lock (_subscriberLock)
+        {
+            var callerKey = Environment.CurrentManagedThreadId.ToString();
+            _activeSubscribers[callerKey] = subscriberId;
+        }
+
         return Task.FromResult(new SubscribeResultDto(true));
     }
 
     [JsonRpcMethod("unsubscribeLogs")]
     public Task<UnsubscribeResultDto> UnsubscribeLogsAsync(CancellationToken ct = default)
     {
-        var removed = _logBroadcaster.Unsubscribe(_subscriberId);
+        string? subscriberId;
+        lock (_subscriberLock)
+        {
+            var callerKey = Environment.CurrentManagedThreadId.ToString();
+            _activeSubscribers.Remove(callerKey, out subscriberId);
+        }
+
+        var removed = subscriberId is not null && _logBroadcaster.Unsubscribe(subscriberId);
         return Task.FromResult(new UnsubscribeResultDto(removed));
     }
 

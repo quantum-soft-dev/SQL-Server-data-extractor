@@ -64,7 +64,7 @@ public class DeltaServiceTests
     {
         var state = new TableState(TestTable, ExtractionMode.Cdc);
         state.MarkComplete(lastLsn, TestSchemaHash, DateTimeOffset.UtcNow);
-        state.CaptureInstance = captureInstance;
+        state.SetCaptureInstance(captureInstance);
         return state;
     }
 

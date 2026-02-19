@@ -370,11 +370,11 @@ public sealed class ExtractionOrchestrator
 
     /// <summary>
     /// Determines whether an exception is a batch-level error that should stop the entire batch.
-    /// Batch-level: downstream unreachable (HttpRequestException), lease conflict (SinkUploadException with 409).
+    /// Batch-level: downstream unreachable (DownstreamUnavailableException), lease conflict (SinkUploadException with 409).
     /// Table-level (all others): permission denied, CDC disabled, SQL errors — skip table, continue.
     /// </summary>
     private static bool IsBatchLevelError(Exception ex) =>
-        ex is HttpRequestException ||
+        ex is DownstreamUnavailableException ||
         IsLeaseConflict(ex) ||
         (ex is SinkUploadException { HttpStatusCode: >= 500 });
 

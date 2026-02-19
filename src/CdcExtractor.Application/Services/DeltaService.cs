@@ -114,12 +114,9 @@ public sealed class DeltaService : IDeltaService
             var columnNames = manifest.Columns.Select(c => c.Name).ToList();
             var changes = _cdcReader.ReadAllChangesAsync(captureInstance, fromLsn, toLsn, ct);
 
-            // Step 4: Chunk CDC rows into gzip CSV (includes _op/_lsn/_seqval/_ts service columns)
-            var chunks = await _chunkingService.ChunkCdcRowsAsync(columnNames, changes, ct)
-                .ConfigureAwait(false);
-
-            // Step 5: Upload each chunk
-            foreach (var chunk in chunks)
+            // Step 4+5: Chunk CDC rows into gzip CSV and upload each as it is produced
+            await foreach (var chunk in _chunkingService.ChunkCdcRowsAsync(
+                columnNames, changes, ct).ConfigureAwait(false))
             {
                 await using (chunk.Data)
                 {

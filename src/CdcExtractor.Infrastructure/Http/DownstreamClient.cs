@@ -191,7 +191,18 @@ public sealed class DownstreamClient : IDownstreamClient
 
     private async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
     {
-        var response = await _httpClient.SendAsync(request, ct).ConfigureAwait(false);
+        HttpResponseMessage response;
+        try
+        {
+            response = await _httpClient.SendAsync(request, ct).ConfigureAwait(false);
+        }
+        catch (HttpRequestException ex)
+        {
+            throw new DownstreamUnavailableException(
+                $"Downstream service unreachable for {request.Method} {request.RequestUri?.AbsolutePath}: " +
+                $"{ex.Message}. Check network connectivity and downstream service availability.", ex);
+        }
+
         var statusCode = (int)response.StatusCode;
 
         if (response.StatusCode == System.Net.HttpStatusCode.Conflict)

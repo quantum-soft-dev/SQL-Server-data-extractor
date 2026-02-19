@@ -16,8 +16,8 @@ public sealed class HeartbeatWorker : IHeartbeatCoordinator, IDisposable
 
     private CancellationTokenSource? _cts;
     private Task? _heartbeatTask;
-    private string? _batchId;
-    private string? _leaseToken;
+    private volatile string? _batchId;
+    private volatile string? _leaseToken;
 
     /// <summary>
     /// Raised when a 409 lease conflict is received, indicating the batch has been superseded.
@@ -91,18 +91,23 @@ public sealed class HeartbeatWorker : IHeartbeatCoordinator, IDisposable
                 break;
             }
 
+            var currentBatchId = _batchId;
+            var currentLeaseToken = _leaseToken;
+            if (currentBatchId is null || currentLeaseToken is null)
+                break;
+
             try
             {
-                await _downstreamClient.HeartbeatAsync(_batchId!, _leaseToken!, ct)
+                await _downstreamClient.HeartbeatAsync(currentBatchId, currentLeaseToken, ct)
                     .ConfigureAwait(false);
 
-                _logger.LogDebug("Heartbeat sent for batch {BatchId}", _batchId);
+                _logger.LogDebug("Heartbeat sent for batch {BatchId}", currentBatchId);
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested)
             {
                 break;
             }
-            catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Conflict)
+            catch (Domain.Exceptions.SinkUploadException ex) when (ex.HttpStatusCode == 409)
             {
                 _logger.LogWarning(
                     "Lease conflict (409) detected for batch {BatchId}. Batch has been superseded.",

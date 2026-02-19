@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.IO.Compression;
+using System.Runtime.CompilerServices;
 using System.Text;
 using CdcExtractor.Application.Models;
 using CdcExtractor.Contracts.Config;
@@ -24,15 +25,16 @@ public sealed class ChunkingService
     }
 
     /// <summary>
-    /// Converts an async enumerable of <see cref="DataRow"/> into a list of gzip CSV chunks.
+    /// Converts an async enumerable of <see cref="DataRow"/> into a streaming sequence of gzip CSV chunks.
     /// Each chunk respects <see cref="ExtractionConfig.MaxBytesPerChunk"/>.
+    /// Callers should upload and dispose each chunk as it is produced to keep memory usage
+    /// proportional to one chunk at a time.
     /// </summary>
-    public async Task<IReadOnlyList<ChunkResult>> ChunkSnapshotRowsAsync(
+    public async IAsyncEnumerable<ChunkResult> ChunkSnapshotRowsAsync(
         IReadOnlyList<string> columnNames,
         IAsyncEnumerable<DataRow> rows,
-        CancellationToken ct = default)
+        [EnumeratorCancellation] CancellationToken ct = default)
     {
-        var results = new List<ChunkResult>();
         var chunkNumber = 1;
         var currentRows = new List<DataRow>();
         long estimatedSize = 0;
@@ -44,8 +46,7 @@ public sealed class ChunkingService
 
             if (estimatedSize >= _config.MaxBytesPerChunk)
             {
-                var chunk = WriteSnapshotChunk(chunkNumber, columnNames, currentRows);
-                results.Add(chunk);
+                yield return WriteSnapshotChunk(chunkNumber, columnNames, currentRows);
                 chunkNumber++;
                 currentRows.Clear();
                 estimatedSize = 0;
@@ -54,11 +55,8 @@ public sealed class ChunkingService
 
         if (currentRows.Count > 0)
         {
-            var chunk = WriteSnapshotChunk(chunkNumber, columnNames, currentRows);
-            results.Add(chunk);
+            yield return WriteSnapshotChunk(chunkNumber, columnNames, currentRows);
         }
-
-        return results;
     }
 
     private ChunkResult WriteSnapshotChunk(
@@ -118,15 +116,14 @@ public sealed class ChunkingService
     }
 
     /// <summary>
-    /// Converts an async enumerable of <see cref="CdcChangeRow"/> into a list of gzip CSV chunks.
+    /// Converts an async enumerable of <see cref="CdcChangeRow"/> into a streaming sequence of gzip CSV chunks.
     /// Includes service columns: _op, _lsn, _seqval, _ts.
     /// </summary>
-    public async Task<IReadOnlyList<ChunkResult>> ChunkCdcRowsAsync(
+    public async IAsyncEnumerable<ChunkResult> ChunkCdcRowsAsync(
         IReadOnlyList<string> columnNames,
         IAsyncEnumerable<CdcChangeRow> rows,
-        CancellationToken ct = default)
+        [EnumeratorCancellation] CancellationToken ct = default)
     {
-        var results = new List<ChunkResult>();
         var chunkNumber = 1;
         var currentRows = new List<CdcChangeRow>();
         long estimatedSize = 0;
@@ -138,8 +135,7 @@ public sealed class ChunkingService
 
             if (estimatedSize >= _config.MaxBytesPerChunk)
             {
-                var chunk = WriteCdcChunk(chunkNumber, columnNames, currentRows);
-                results.Add(chunk);
+                yield return WriteCdcChunk(chunkNumber, columnNames, currentRows);
                 chunkNumber++;
                 currentRows.Clear();
                 estimatedSize = 0;
@@ -148,11 +144,8 @@ public sealed class ChunkingService
 
         if (currentRows.Count > 0)
         {
-            var chunk = WriteCdcChunk(chunkNumber, columnNames, currentRows);
-            results.Add(chunk);
+            yield return WriteCdcChunk(chunkNumber, columnNames, currentRows);
         }
-
-        return results;
     }
 
     private ChunkResult WriteCdcChunk(

@@ -239,7 +239,7 @@ public class IpcServerTests
         // Arrange
         var tableId1 = new TableIdentifier("dbo", "Orders");
         var state1 = new TableState(tableId1, ExtractionMode.Cdc);
-        state1.CaptureInstance = "dbo_Orders";
+        state1.SetCaptureInstance("dbo_Orders");
         var schemaHash = SchemaHash.Compute(new { Col1 = "int", Col2 = "varchar" });
         var syncTime = DateTimeOffset.UtcNow.AddMinutes(-10);
         state1.MarkComplete(Lsn.Parse("0x00000027000001E80003"), schemaHash, syncTime);

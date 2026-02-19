@@ -130,6 +130,54 @@ public class LsnTests
         lsnA.GetHashCode().Should().Be(lsnB.GetHashCode());
     }
 
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void Parse_NullOrEmpty_ThrowsArgumentException(string? hex)
+    {
+        var act = () => Lsn.Parse(hex!);
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Theory]
+    [InlineData("0x0000002700")]
+    [InlineData("0x00000027000001E800030099")]
+    [InlineData("ABCD")]
+    public void Parse_WrongLength_ThrowsArgumentException(string hex)
+    {
+        var act = () => Lsn.Parse(hex);
+        act.Should().Throw<ArgumentException>()
+            .WithMessage("*10 bytes*");
+    }
+
+    [Theory]
+    [InlineData("0xGGGGGGGGGGGGGGGGGGGG")]
+    [InlineData("0x00000027ZZ0001E80003")]
+    public void Parse_NonHexCharacters_ThrowsFormatException(string hex)
+    {
+        var act = () => Lsn.Parse(hex);
+        act.Should().Throw<FormatException>();
+    }
+
+    [Fact]
+    public void From_NullBytes_ThrowsArgumentNullException()
+    {
+        var act = () => Lsn.From(null!);
+        act.Should().Throw<ArgumentNullException>();
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(5)]
+    [InlineData(11)]
+    public void From_WrongLength_ThrowsArgumentException(int length)
+    {
+        var act = () => Lsn.From(new byte[length]);
+        act.Should().Throw<ArgumentException>()
+            .WithMessage("*10 bytes*");
+    }
+
     [Fact]
     public void IComparable_SortsCorrectly()
     {

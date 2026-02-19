@@ -6,8 +6,11 @@ using CdcExtractor.Domain.Interfaces;
 namespace CdcExtractor.Infrastructure.Http;
 
 /// <summary>
-/// Stores and retrieves OAuth tokens encrypted with DPAPI (CurrentUser scope).
+/// Stores and retrieves OAuth tokens encrypted with DPAPI (LocalMachine scope).
 /// Tokens are persisted as Base64-encoded encrypted bytes in a local file.
+/// LocalMachine scope allows both the WPF wizard (interactive user) and the
+/// Windows Service (service account) to encrypt/decrypt the same token file.
+/// The token file should be protected with restrictive NTFS ACLs.
 /// </summary>
 [SupportedOSPlatform("windows")]
 public sealed class DpapiTokenStore : ITokenProvider
@@ -59,7 +62,7 @@ public sealed class DpapiTokenStore : ITokenProvider
         _expiresAt = DateTimeOffset.UtcNow.AddSeconds(expiresInSeconds);
 
         var plainBytes = Encoding.UTF8.GetBytes(refreshToken);
-        var encryptedBytes = ProtectedData.Protect(plainBytes, null, DataProtectionScope.CurrentUser);
+        var encryptedBytes = ProtectedData.Protect(plainBytes, null, DataProtectionScope.LocalMachine);
         var base64 = Convert.ToBase64String(encryptedBytes);
 
         var directory = Path.GetDirectoryName(_tokenFilePath);
@@ -88,7 +91,7 @@ public sealed class DpapiTokenStore : ITokenProvider
         }
 
         var encryptedBytes = Convert.FromBase64String(base64);
-        var plainBytes = ProtectedData.Unprotect(encryptedBytes, null, DataProtectionScope.CurrentUser);
+        var plainBytes = ProtectedData.Unprotect(encryptedBytes, null, DataProtectionScope.LocalMachine);
         return Encoding.UTF8.GetString(plainBytes);
     }
 

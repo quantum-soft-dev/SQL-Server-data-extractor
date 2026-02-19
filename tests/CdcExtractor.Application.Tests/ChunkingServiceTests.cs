@@ -23,7 +23,7 @@ public class ChunkingServiceTests
         var rows = AsyncEnumerable.Empty<DataRow>();
 
         // Act
-        var chunks = await _sut.ChunkSnapshotRowsAsync(ColumnNames, rows);
+        var chunks = await _sut.ChunkSnapshotRowsAsync(ColumnNames, rows).ToListAsync();
 
         // Assert
         chunks.Should().BeEmpty();
@@ -36,7 +36,7 @@ public class ChunkingServiceTests
         var rows = CreateRows(5);
 
         // Act
-        var chunks = await _sut.ChunkSnapshotRowsAsync(ColumnNames, rows);
+        var chunks = await _sut.ChunkSnapshotRowsAsync(ColumnNames, rows).ToListAsync();
 
         // Assert
         chunks.Should().HaveCount(1);
@@ -50,7 +50,7 @@ public class ChunkingServiceTests
         var rows = CreateRows(3);
 
         // Act
-        var chunks = await _sut.ChunkSnapshotRowsAsync(ColumnNames, rows);
+        var chunks = await _sut.ChunkSnapshotRowsAsync(ColumnNames, rows).ToListAsync();
 
         // Assert
         chunks.Should().HaveCount(1);
@@ -70,7 +70,7 @@ public class ChunkingServiceTests
         var rows = CreateRows(500);
 
         // Act
-        var chunks = await _sut.ChunkSnapshotRowsAsync(ColumnNames, rows);
+        var chunks = await _sut.ChunkSnapshotRowsAsync(ColumnNames, rows).ToListAsync();
 
         // Assert
         chunks.Should().HaveCountGreaterThan(1);
@@ -84,7 +84,7 @@ public class ChunkingServiceTests
         var rows = CreateRows(500);
 
         // Act
-        var chunks = await _sut.ChunkSnapshotRowsAsync(ColumnNames, rows);
+        var chunks = await _sut.ChunkSnapshotRowsAsync(ColumnNames, rows).ToListAsync();
 
         // Assert — decompress each chunk and verify first line is the CSV header
         foreach (var chunk in chunks)
@@ -108,7 +108,7 @@ public class ChunkingServiceTests
         var rows = CreateRows(3);
 
         // Act
-        var chunks = await _sut.ChunkSnapshotRowsAsync(ColumnNames, rows);
+        var chunks = await _sut.ChunkSnapshotRowsAsync(ColumnNames, rows).ToListAsync();
 
         // Assert
         chunks[0].ChunkNumber.Should().Be(1);

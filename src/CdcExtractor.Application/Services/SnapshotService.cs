@@ -60,12 +60,9 @@ public sealed class SnapshotService : ISnapshotService
             var columnNames = manifest.Columns.Select(c => c.Name).ToList();
             var rows = _cdcReader.ReadFullTableAsync(table, ct);
 
-            // Step 4: Chunk rows into gzip CSV
-            var chunks = await _chunkingService.ChunkSnapshotRowsAsync(
-                columnNames, rows, ct).ConfigureAwait(false);
-
-            // Step 5: Upload each chunk
-            foreach (var chunk in chunks)
+            // Step 4+5: Chunk rows into gzip CSV and upload each as it is produced
+            await foreach (var chunk in _chunkingService.ChunkSnapshotRowsAsync(
+                columnNames, rows, ct).ConfigureAwait(false))
             {
                 await using (chunk.Data)
                 {

@@ -73,7 +73,15 @@ try
     {
         var config = sp.GetRequiredService<DownstreamConfig>();
         client.BaseAddress = new Uri(config.BaseUrl);
-    }).AddHttpMessageHandler<TokenRefreshHandler>();
+    })
+    .AddHttpMessageHandler<TokenRefreshHandler>()
+    .AddStandardResilienceHandler(options =>
+    {
+        options.Retry.MaxRetryAttempts = 3;
+        options.Retry.UseJitter = true;
+        options.Retry.BackoffType = Polly.DelayBackoffType.Exponential;
+        options.Retry.Delay = TimeSpan.FromSeconds(1);
+    });
 
     // Application services
     builder.Services.AddSingleton<ChunkingService>();
@@ -105,8 +113,16 @@ try
             .MinimumLevel.Override("System", Serilog.Events.LogEventLevel.Warning)
             .Enrich.FromLogContext()
             .Enrich.WithProperty("Application", "CdcExtractor")
+            .Destructure.ByTransforming<SqlServerConfig>(c => new
+            {
+                c.Server, c.Instance, c.Database, c.AuthType, c.Encrypt,
+                Username = c.Username is not null ? "***" : null,
+                Password = c.Password is not null ? "***" : null,
+            })
             .WriteTo.File(
-                path: @"C:\ProgramData\SQLExtractor\logs\extractor-.log",
+                path: Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "SQLExtractor", "logs", "extractor-.log"),
                 rollingInterval: Serilog.RollingInterval.Day,
                 outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}")
             .WriteTo.EventLog(

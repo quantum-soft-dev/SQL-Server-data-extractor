@@ -15,7 +15,7 @@ public sealed class TableState
     public BootstrapStatus BootstrapStatus { get; private set; }
     public SchemaHash? SchemaHash { get; private set; }
     public DateTimeOffset? LastSyncTime { get; private set; }
-    public string? CaptureInstance { get; set; }
+    public string? CaptureInstance { get; private set; }
     public string? ErrorMessage { get; private set; }
 
     public TableState(TableIdentifier tableId, ExtractionMode mode)
@@ -26,6 +26,39 @@ public sealed class TableState
         ExtractionMode = mode;
         BootstrapStatus = BootstrapStatus.Pending;
         LastProcessedLsn = Lsn.Empty;
+    }
+
+    /// <summary>
+    /// Reconstitutes a <see cref="TableState"/> from persistence without going through domain methods.
+    /// Used by repositories to hydrate entities from database rows.
+    /// </summary>
+    internal static TableState Reconstitute(
+        TableIdentifier tableId,
+        ExtractionMode mode,
+        BootstrapStatus bootstrapStatus,
+        Lsn lastProcessedLsn,
+        SchemaHash? schemaHash,
+        DateTimeOffset? lastSyncTime,
+        string? captureInstance,
+        string? errorMessage)
+    {
+        var state = new TableState(tableId, mode)
+        {
+            BootstrapStatus = bootstrapStatus,
+            LastProcessedLsn = lastProcessedLsn,
+            SchemaHash = schemaHash,
+            LastSyncTime = lastSyncTime,
+            CaptureInstance = captureInstance,
+            ErrorMessage = errorMessage,
+        };
+        return state;
+    }
+
+    /// <summary>Sets the CDC capture instance name for this table.</summary>
+    public void SetCaptureInstance(string captureInstance)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(captureInstance);
+        CaptureInstance = captureInstance;
     }
 
     /// <summary>

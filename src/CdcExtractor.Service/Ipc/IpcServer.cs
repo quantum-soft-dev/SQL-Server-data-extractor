@@ -84,7 +84,8 @@ public sealed class IpcServer : BackgroundService
     /// <summary>
     /// Creates a <see cref="PipeSecurity"/> ACL that restricts pipe access to:
     /// 1. The service account (current process identity) — full control
-    /// 2. The Interactive Users group — read/write (allows the WPF app to connect)
+    /// 2. The Administrators group — read/write (restricts IPC to admins only;
+    ///    on shared/terminal-server machines this is safer than InteractiveSid)
     /// All other accounts are denied access.
     /// </summary>
     private PipeSecurity CreatePipeSecurity()
@@ -99,11 +100,12 @@ public sealed class IpcServer : BackgroundService
             PipeAccessRights.FullControl,
             AccessControlType.Allow));
 
-        // Grant interactive users (local logon sessions) read/write access
-        // so the WPF management app can connect when run by an operator
-        var interactiveUsers = new SecurityIdentifier(WellKnownSidType.InteractiveSid, null);
+        // Grant the local Administrators group read/write access.
+        // The WPF management app should be run elevated (Run as Administrator)
+        // or the operator should be a member of the Administrators group.
+        var admins = new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null);
         security.AddAccessRule(new PipeAccessRule(
-            interactiveUsers,
+            admins,
             PipeAccessRights.ReadWrite,
             AccessControlType.Allow));
 
